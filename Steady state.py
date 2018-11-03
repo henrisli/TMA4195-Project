@@ -17,16 +17,17 @@ g = 9.81
 alpha = 5*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
 
-l = 3
+l = 2
 dx = 1/100
 kappa = 2*H**2/(Q*L)*mu*Theta**m
 q = np.repeat(1,(l+l*l/2)/dx)
 q = np.append(q,np.linspace(1,-1-l,(2+l)/dx))
-q = np.append(q,np.repeat(0,4/dx))
+#q = np.append(q,np.repeat(0,2/dx))*Q*L
+qsum = np.abs(np.cumsum(q))
 
-h = np.zeros(len(q))
-for i in range(len(q)):
-    h[i] = np.power((m+2)/kappa*dx*np.sum(q[:i]),1/(m+2))
-
-print(h)
+plt.plot(q)
+plt.figure()
+plt.plot(qsum)
+h = np.power((m+2)/kappa*dx*np.cumsum(q),1/(m+2))
+plt.figure()
 plt.plot(h)
