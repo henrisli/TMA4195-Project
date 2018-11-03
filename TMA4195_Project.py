@@ -16,7 +16,7 @@ g = 9.81
 alpha = 5*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
 def flux(h):
-    return 2*H**2/(Q*L)*mu*Theta**m*np.power(h,m+2)
+    return 2*H**2/(Q*L)*mu*Theta**m*np.power(h,m+2)/(m+2)
 #from analytical import analytical
 
 # The following imports a function for the boundary conditions
@@ -42,7 +42,7 @@ def h_solution(method, T):
     if method == 'classical':
         # Coarser grid
         x  = np.arange(-0.5*dx,1+1.5*dx,dx)
-        h0 = np.zeros(len(x))
+        h0 = np.ones(len(x))
         
         # Compute solutions with the three classical schemes
         hu = upw(h0, 0.995, dx, T, flux, df, inflow, q)
@@ -93,4 +93,4 @@ def h_solution(method, T):
         """
 
 
-h_solution('classical', 0.05)
+h_solution('classical', 10000)
