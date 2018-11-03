@@ -25,6 +25,7 @@ q = np.append(q,np.linspace(1,-1-l,(2+l)/dx))
 #q = np.append(q,np.repeat(0,2/dx))*Q*L
 qsum = np.abs(np.cumsum(q))
 
+
 plt.plot(q)
 plt.figure()
 plt.plot(qsum)
