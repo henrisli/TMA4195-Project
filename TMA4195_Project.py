@@ -10,7 +10,7 @@ from god import god
 # Height equation flux function
 H = 50
 L = 2000
-Q = 3/(365*24*3600)
+Q = 3.5/(365*24*3600)
 mu = 9.3e-25
 m = 3
 rho = 1000
@@ -20,6 +20,9 @@ Theta = rho*g*H*np.sin(alpha)
 kappa = 2*H**2/(Q*L)*mu*Theta**m
 def flux(h):
     return kappa*np.power(h,m+2)/(m+2)
+
+def shallowFlux(h):
+    return kappa/(m+2)*np.power(np.abs(H/(L*np.tan(alpha))*np.diff(h)-1),m-1)*(1-H/(L*np.tan(alpha))*np.diff(h))*np.power(h,m+2)
 
 #from analytical import analytical
 
@@ -62,29 +65,27 @@ def h_solution(method, T):
     N  = 150
     dx = L/N
     
-    if method == 'classical':
+    if method == 'upw':
         # Coarser grid
         x  = np.arange(-0.5*dx,L+1.5*dx,dx)
         #h0 = np.ones(len(x))*H
-        h0 = np.ones(51)*H
-        h0 = np.append(h0,np.zeros(101))
+        h0 = np.ones(N//3 + 1)*H
+        h0 = np.append(h0,np.zeros(N//3*2 + 1))
         
         # Compute solutions with the three classical schemes
         hu = upw(h0, 0.995, dx, T, flux, df, inflow, production)
-        hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production)
-        hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production)
-        hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production)
-        hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production)
+        #hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production)
+        #hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production)
+        #hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production)
+        #hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production)
         # Plot results
         plt.figure()
-        # Analytical solution:
-        #plt.plot(xr, analytical(xr, T), color = 'red')
         plt.plot(x[1:-1], hu[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], np.repeat(100,len(hu[1:-1])))
+        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+
         plt.title("Upwind")
         # The following commented out section saves the plots
         """
@@ -93,31 +94,21 @@ def h_solution(method, T):
         elif T == 0.5:
             plt.savefig("solution_classical_discont.pdf")
         """
-    """
-    elif method == 'high':
+    
+    elif method == 'god':
         # Coarser grid, need two fictitious nodes at each end for this scheme.
-        xh = np.arange(-1.5*dx, 1 + 2.5*dx, dx)
+        xh = np.arange(-1.5*dx, L + 2.5*dx, dx)
+        #h0 = np.ones(len(x))*H
+        h0 = np.ones(N//3 + 2)*H
+        h0 = np.append(h0,np.zeros(N//3*2 + 2))
         
-        # Discontinuous solution:
-        if T == 0.5:
-            u0 = np.zeros(len(xh))
-            u0[xh<=0] = 1.0
-            
-        # Continuous initial:
-        elif T == 1:
-            u0 = np.ones(len(xh))*analytical(1,T)
-            u0[xh<=0] = 1.0
-        
-        ug, phi = god(u0, 0.495, dx, T, flux, df, inflow)
-        
+        ug, phi = god(h0, 0.495, dx, T, flux, df, inflow, production)
         #Plot results
         plt.figure()
-        # Analytical solution:
-        plt.plot(xr, analytical(xr, T), color = 'red')
-        plt.plot(xh[2:-2], ug[2:-2], '.', markersize = 3)
+        plt.plot(xh[2:-2], ug[2:-2], '-', markersize = 3)
         plt.title("Godunov")
         # The following commented out section saves the plots
-        
+        """
         if T == 0.5:
             plt.savefig("solution_high_discont.pdf")
         elif T == 1:
@@ -125,7 +116,12 @@ def h_solution(method, T):
         """
 
 
-#h_solution('classical', 1)
+#h_solution('upw', 50)
+
+
+
+
+
 
 def film():
     s = np.linspace(0,50,1001)
@@ -138,13 +134,15 @@ def film():
     N  = 150
     dx = L/N
     
-    # Coarser grid
-    x  = np.arange(-0.5*dx,L+1.5*dx,dx)
-    #h0 = np.ones(len(x))*H
+    
     h0 = np.ones(51)*H
     h0 = np.append(h0,np.zeros(101))
-    
+    x = np.arange(-0.5*dx, L + 1.5*dx,dx)
     hu = upw2(h0,0.995, dx, 10000, flux, df, inflow, production)
+    print(hu)
+    plt.figure()
+    for i in hu:
+        plt.plot(x[1:-1], i[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
     
     from matplotlib import animation
     # First set up the figure, the axis, and the plot element we want to animate
