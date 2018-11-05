@@ -15,11 +15,12 @@ mu = 9.3e-25
 m = 3
 rho = 1000
 g = 9.81
-alpha = 45*np.pi/180
+alpha = 25*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
 kappa = 2*H**2/(Q*L)*mu*Theta**m
-def flux(h):
-    return kappa*np.power(h,m+2)/(m+2)
+
+def flux(h,d):
+    return kappa*np.power(h-d,m+2)/(m+2)
 
 def shallowFlux(h):
     return kappa/(m+2)*np.power(np.abs(H/(L*np.tan(alpha))*np.diff(h)-1),m-1)*(1-H/(L*np.tan(alpha))*np.diff(h))*np.power(h,m+2)
@@ -42,8 +43,6 @@ def production(h):
         if h[i]>0:
             if i < n/3 + 1:
                 q[i] = 1
-            #elif i < 2*n/3 + 2:
-            #    q[i] = 1-(i-(n/3+1))/(n/6)
             else:
                 q[i] = 1-(i-(n/3+1))/(n/6)    
     
@@ -52,18 +51,20 @@ def production(h):
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
 def h_solution(method, T):
-    #q = np.append(q,np.linspace(1,-1,101))
-    #q = np.append(q,np.repeat(0,51))*Q
-    #Here we compute the maximum value of f'(u).
-    s = np.linspace(0,50,1001)
-    dfv = max(np.diff(flux(s))/np.diff(s))
-    print(dfv)
-    df = lambda u: np.zeros(len(u)) + dfv
-    
-        
     # Solutions on coarser grids
     N  = 150
     dx = L/N
+    
+    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    d = np.zeros(N+2)
+    
+    #Here we compute the maximum value of f'(u).
+    s = np.linspace(0,50,1001)
+    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
+    dfv = max(np.diff(flux(s,np.zeros(1001)))/np.diff(s))
+    print(dfv)
+    df = lambda u: np.zeros(len(u)) + dfv
+    
     
     if method == 'upw':
         # Coarser grid
@@ -72,19 +73,22 @@ def h_solution(method, T):
         h0 = np.ones(N//3 + 1)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 1))
         
+        
         # Compute solutions with the three classical schemes
-        hu = upw(h0, 0.995, dx, T, flux, df, inflow, production)
-        #hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production)
-        #hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production)
-        #hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production)
-        #hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production)
+        hu = upw(h0, 0.995, dx, T, flux, df, inflow, production, d)
+        hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production, d)
+        hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production, d)
+        hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production, d)
+        hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production, d)
+
         # Plot results
         plt.figure()
         plt.plot(x[1:-1], hu[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
 
         plt.title("Upwind")
         # The following commented out section saves the plots
@@ -116,7 +120,7 @@ def h_solution(method, T):
         """
 
 
-#h_solution('upw', 50)
+h_solution('upw', 1)
 
 
 
@@ -138,7 +142,7 @@ def film():
     h0 = np.ones(51)*H
     h0 = np.append(h0,np.zeros(101))
     x = np.arange(-0.5*dx, L + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, 10000, flux, df, inflow, production)
+    hu = upw2(h0,0.995, dx, 10000, flux, df, inflow, production, d)
     print(hu)
     plt.figure()
     for i in hu:
@@ -168,4 +172,4 @@ def film():
                                    frames=1000, interval=20, blit=True)
     
     plt.show()
-film()
+#film()

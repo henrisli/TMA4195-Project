@@ -1,6 +1,6 @@
 import numpy as np
 
-def upw2(h0, cfl, dx, T, flux, df, boundary, production):
+def upw2(h0, cfl, dx, T, flux, df, boundary, production, d):
     a = [[0 for i in range(len(h0))] for i in range(T//10+1)]
     b = np.array(a)
     h = np.copy(h0)
@@ -17,7 +17,7 @@ def upw2(h0, cfl, dx, T, flux, df, boundary, production):
         t += dt
         j += 1
         h = boundary(h)  
-        f = flux(h)
+        f = flux(h, d)
         q = production(h)
         #print(f)
         h[i] = h[i] - dt/dx*(f[i]-f[i-1]) + dt*q[i]
