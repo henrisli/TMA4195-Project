@@ -7,53 +7,83 @@ Created on Sat Nov  3 14:11:01 2018
 import numpy as np
 import matplotlib.pyplot as plt
 
-#CONSTANTS
-H = 50
-h_0 = 1.0 #Initial height is 100% of height scale
-L = 1000
-Q = 7.5/(24*365*3600) #7.5m per year
-MU = 9.3e-25
-M = 3
-RHO = 1000
-G = 9.81
-ALPHA = 5*np.pi/180
-THETA = RHO*G*H*np.sin(ALPHA)
-KAPPA = 2*H**2/(Q*L)*MU*THETA**M
+class StationaryGlacier:
+    def __init__(self, heightScale, heightStart, lengthScale, downpourYear, 
+                 parameterMu, parameterM, density, gravity, angleInDegrees, x_s, x_f):
 
-print('Kappa: {}'.format(KAPPA))
-print('Theta: {}'.format(THETA))
+        self.H = heightScale
+        self.h_0 = heightStart
+        self.L = lengthScale
+        self.Q = downpourYear / (24 * 365 * 3600)
+        self.MU = parameterMu
+        self.M = parameterM
+        self.RHO = density
+        self.G = gravity
+        self.ALPHA = angleInDegrees / 180 * np.pi
+        
+        self.THETA = self.RHO * self.G * self.H * np.sin(self.ALPHA)
+        self.LAMBDA = 2 * self.H**2 / (self.L * (self.M + 2)) * self.MU * self.THETA**(self.M)
 
-LAMBDA = Q*KAPPA / (M+2)
+        self.x_s = x_s
+        self.x_f = x_f
+        self.dq = 2*(self.Q*x_f + self.LAMBDA*self.h_0**(self.M+2)) / ((self.x_f  - self.x_s)**2)
+        
+        self.q = generate_q(self.Q, self.dq, self.x_s, self.x_f)
+        self.int_q = generate_int_q(self.Q, self.dq, self.x_s, self.x_f)
+        
+    def plotQ(self, x = np.linspace(0, 1, num = 1001)):
+        plt.plot(x, self.q(x))
+        plt.plot(x, self.int_q(x))
+        plt.plot((0, 1), (-self.LAMBDA * self.h_0**(self.M+2), -self.LAMBDA * self.h_0**(self.M+2)), alpha=0.3)
+        
+    def plotGlacier(self, x = np.linspace(0, 1, num = 1001)):
+        core= 1 / (self.LAMBDA) * self.int_q(x) + self.h_0**(self.M + 2)
+        
+        assert(not(np.any(core < -1E-11)))
+        core[core < 0] = 0 
 
-X_BREAK = 0.2
+        h = np.power(core, 1/(self.M+2))
+        plt.ylabel('$h^*$'); plt.xlabel('$x^*$'); plt.ylim((0, 5*self.H))
+        plt.axis('equal')
+        plt.plot(self.L*x, self.H*h)
+        
+        
+
+def generate_q(Q, dq, x_s, x_f):
+    def f(x):
+        if x < 0:
+            return 0
+        elif x < x_s:
+            return Q
+        elif x < x_f:
+            return Q - dq*(x - x_s)
+        else:
+            return 0
+    return np.vectorize(f)
+
+def generate_int_q(Q, dq, x_s, x_f):
+    def int_q(x):
+        if x < 0:
+            return 0
+        elif x < x_s:
+            return x*Q
+        elif x < x_f:
+            return Q*x  - dq / 2 * (x - x_s)**2
+        else:
+            return Q*x_f - dq / 2 * (x_f - x_s)**2
+    int_q = np.vectorize(int_q)
+    return int_q
+
+legend = []
+differentDownpour = [2.0, 10. ,70.]
+for dp in differentDownpour:
+    G = StationaryGlacier(50, 4.0, 1000, dp, 9.3E-25, 3, 1000, 9.81, 5, 0.2 ,0.8)
+#    G.plotQ()
+    G.plotGlacier()
+    legend.append('Downpour = {}m/yr'.format(dp))
+plt.legend(legend)
+    
+#G_1 = StationaryGlacier(50, 4.0, 1000, 3.0, 9.3E-25, 3, 1000, 9.81, 5, 0.2 ,0.4)
+#G_1.plotGlacier()
 
 
-def integrated_q(x, x_b, descent = None):
-    if descent == None:
-        descent = Q / (x_b)
-    if x < 0:
-        return 0
-    elif x < x_b:
-        return x*Q
-    else:
-        return x*Q  - descent / 2 * (x**2 + x_b**2) + descent*x*x_b
-integrated_q = np.vectorize(integrated_q)
-int_q = lambda x: integrated_q(x, X_BREAK, Q/X_BREAK)
-
-def core(x):
-    return max(0, 1/LAMBDA*int_q(x) + h_0**(M+2))
-core = np.vectorize(core)
-
-x = np.linspace(0, 1, num=1001)
-
-plt.plot(x, int_q(x))
-plt.show()
-
-h = np.power(core(x), 1/(M+2))
-
-plt.plot(x, core(x))
-plt.show()
-
-plt.ylabel('$h^*$'); plt.xlabel('$x^*$'); plt.ylim((0, 5*H))
-plt.axis('equal')
-plt.plot(L*x, H*h)
