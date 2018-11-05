@@ -74,11 +74,14 @@ def generate_int_q(Q, dq, x_s, x_f):
     int_q = np.vectorize(int_q)
     return int_q
 
+legend = []
 differentDownpour = [2.0, 10. ,70.]
 for dp in differentDownpour:
     G = StationaryGlacier(50, 4.0, 1000, dp, 9.3E-25, 3, 1000, 9.81, 5, 0.2 ,0.8)
 #    G.plotQ()
     G.plotGlacier()
+    legend.append('Downpour = {}m/yr'.format(dp))
+plt.legend(legend)
     
 #G_1 = StationaryGlacier(50, 4.0, 1000, 3.0, 9.3E-25, 3, 1000, 9.81, 5, 0.2 ,0.4)
 #G_1.plotGlacier()
