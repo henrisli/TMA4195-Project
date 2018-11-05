@@ -23,7 +23,7 @@ def flux(h,d):
     return kappa*np.power(h-d,m+2)/(m+2)
 
 def shallowFlux(h):
-    return kappa/(m+2)*np.power(np.abs(H/(L*np.tan(alpha))*np.diff(h)-1),m-1)*(1-H/(L*np.tan(alpha))*np.diff(h))*np.power(h,m+2)
+    return kappa/(m+2)*np.power(np.abs(H/(L*np.tan(alpha))*np.diff(h)*150/L-1),m-1)*(1-H/(L*np.tan(alpha))*np.diff(h)*150/L)*np.power(h,m+2)
 
 #from analytical import analytical
 
@@ -36,21 +36,35 @@ def inflow(h, n=0):
     return h
 
 # The following computes the production q, given a height profile h
-def production(h):
+def production(h,*args):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if h[i]>0:
-            if i < n/3 + 1:
-                q[i] = 1
-            else:
-                q[i] = 1-(i-(n/3+1))/(n/6)    
-    
+        if i < n/3 + 1:
+            q[i] = 1
+        else:
+            q[i] = 1-(i-(n/3+1))/(n/6)   
+            
+        if h[i]==0 and q[i]<0:
+            q[i] = 0
+    return q*1e+03
+
+def retreating_production(h,k):
+    n = len(h) - 2
+    q = np.zeros(n + 2)
+    for i in range(n + 2):
+        if i < n/3 + 1 - k//20:
+            q[i] = 1
+        else:
+            q[i] = 1-(i-(n/3 + 1 - k//20))/(n/6) 
+            
+        if h[i]==0 and q[i]<0:
+            q[i] = 0
     return q*1e+03
 
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
-def h_solution(method, T):
+def h_solution(method, T1, T2):
     # Solutions on coarser grids
     N  = 150
     dx = L/N
@@ -71,24 +85,27 @@ def h_solution(method, T):
         x  = np.arange(-0.5*dx,L+1.5*dx,dx)
         #h0 = np.ones(len(x))*H
         h0 = np.ones(N//3 + 1)*H
-        h0 = np.append(h0,np.zeros(N//3*2 + 1))
+        h0 = np.append(h0,np.zeros(N//3*2 + 1)*H)
+
         
         
         # Compute solutions with the three classical schemes
-        hu = upw(h0, 0.995, dx, T, flux, df, inflow, production, d)
-        hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production, d)
-        hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production, d)
-        hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production, d)
-        hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production, d)
+        hu = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
+        hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
+        #hu2 = upw(h0,0.995, dx, T*10, flux, df, inflow, production, d)
+        #hu3 = upw(h0,0.995, dx, T*100, flux, df, inflow, production, d)
+        #hu4 = upw(h0,0.995, dx, T*1000, flux, df, inflow, production, d)
+        #hu5 = upw(h0,0.995, dx, T*10000, flux, df, inflow, production, d)
 
         # Plot results
         plt.figure()
         plt.plot(x[1:-1], hu[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
 
         plt.title("Upwind")
         # The following commented out section saves the plots
@@ -106,7 +123,7 @@ def h_solution(method, T):
         h0 = np.ones(N//3 + 2)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 2))
         
-        ug, phi = god(h0, 0.495, dx, T, flux, df, inflow, production)
+        ug, phi = god(h0, 0.495, dx, T, flux, df, inflow, production,d)
         #Plot results
         plt.figure()
         plt.plot(xh[2:-2], ug[2:-2], '-', markersize = 3)
@@ -120,7 +137,7 @@ def h_solution(method, T):
         """
 
 
-h_solution('upw', 1)
+h_solution('upw', 10000,100)
 
 
 

@@ -15,8 +15,10 @@ def upw(h0, cfl, dx, T, flux, df, boundary, production, d):
         j += 1
         h = boundary(h)  
         f = flux(h, d)
-        q = production(h)
+        q = production(h,k)
         h[i] = h[i] - dt/dx*(f[i]-f[i-1]) + dt*q[i]
+        h[h<1e-06] = 0
         dt = cfl*dx/max(abs(df(h)))
-    print(np.sum(h)*dx)
+    print(min(h), max(h))
+    plt.plot(q)
     return h
