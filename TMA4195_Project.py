@@ -1,6 +1,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 
 # Import schemes:
 from upw import upw
@@ -30,9 +32,9 @@ def shallowFlux(h):
 # The following imports a function for the boundary conditions
 def inflow(h, n=0):
     if n == 0:
-        h[0] = 0
+        h[0] = H
     else:
-        h[0:n] = 0
+        h[0:n] = H
     return h
 
 # The following computes the production q, given a height profile h
@@ -53,10 +55,10 @@ def retreating_production(h,k):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 + 1 - k//20:
+        if i < n/3 + 1 - k//100:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 + 1 - k//20))/(n/6) 
+            q[i] = 1-(i-(n/3 + 1 - k//100))/(n/6) 
             
         if h[i]==0 and q[i]<0:
             q[i] = 0
@@ -76,7 +78,6 @@ def h_solution(method, T1, T2):
     s = np.linspace(0,50,1001)
     #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
     dfv = max(np.diff(flux(s,np.zeros(1001)))/np.diff(s))
-    print(dfv)
     df = lambda u: np.zeros(len(u)) + dfv
     
     
@@ -84,7 +85,7 @@ def h_solution(method, T1, T2):
         # Coarser grid
         x  = np.arange(-0.5*dx,L+1.5*dx,dx)
         #h0 = np.ones(len(x))*H
-        h0 = np.ones(N//3 + 1)*H
+        h0 = np.zeros(N//3 + 1)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 1)*H)
 
         
@@ -123,7 +124,7 @@ def h_solution(method, T1, T2):
         h0 = np.ones(N//3 + 2)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 2))
         
-        ug, phi = god(h0, 0.495, dx, T, flux, df, inflow, production,d)
+        ug, phi = god(h0, 0.495, dx, T1, flux, df, inflow, production,d)
         #Plot results
         plt.figure()
         plt.plot(xh[2:-2], ug[2:-2], '-', markersize = 3)
@@ -137,7 +138,7 @@ def h_solution(method, T1, T2):
         """
 
 
-h_solution('upw', 10000,100)
+#h_solution('upw', 15000,2500)
 
 
 
@@ -146,47 +147,44 @@ h_solution('upw', 10000,100)
 
 def film():
     s = np.linspace(0,50,1001)
-    dfv = max(np.diff(flux(s))/np.diff(s))
-    print(dfv)
+    d = np.zeros(1001)
+    dfv = max(np.diff(flux(s,d))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
     
     # Solutions on coarser grids
     N  = 150
     dx = L/N
+    d = np.zeros(N+2)
     
-    
-    h0 = np.ones(51)*H
-    h0 = np.append(h0,np.zeros(101))
+    h0 = np.zeros(N//3+1)*H
+    h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, L + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, 10000, flux, df, inflow, production, d)
-    print(hu)
+    hu = upw2(h0,0.995, dx, 8000, 10000, flux, df, inflow, production, retreating_production, d)   
+    print(len(hu))
     plt.figure()
-    for i in hu:
-        plt.plot(x[1:-1], i[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
+    #for i in hu:
+    #    plt.plot(x[1:-1], i[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
     
-    from matplotlib import animation
-    # First set up the figure, the axis, and the plot element we want to animate
+    tvalues = np.arange(1000)
     fig = plt.figure()
-    ax = plt.axes(xlim=(0, 2000), ylim=(-1, 51))
-    line, = ax.plot([], [], lw=2)
+    xvalues = x
+    xg = xvalues
+    yg = tvalues
+    xg, yg = np.meshgrid(xg, yg)
+    y1 = hu
+    fig, ax = plt.subplots()
     
-    # initialization function: plot the background of each frame
-    def init():
-        line.set_data([], [])
-        return line,
-    
-    # animation function.  This is called sequentially
+    line, = ax.plot(xvalues, y1[8000])
     def animate(i):
-        x = np.arange(-0.5*dx, L + 1.5*dx,dx)
-        y = hu[i]
-        line.set_data(x, y)
+        line.set_ydata(y1[i])
+        return line,
+    def init():
+        line.set_ydata(np.ma.array(xvalues, mask=True))
         return line,
     
-    
-    # call the animator.  blit=True means only re-draw the parts that have changed.
-    anim = animation.FuncAnimation(fig, animate, init_func=init,
-                                   frames=1000, interval=20, blit=True)
+    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, 8000+10000+1), init_func = init,
+                                  interval = 1, blit=True)
     
     plt.show()
-#film()
+film()
