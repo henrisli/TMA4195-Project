@@ -73,13 +73,12 @@ class StationaryGlacier:
         self.zz = zz
         self.u = u
         self.v = v
-    
         
         
     def plotQ(self, x = np.linspace(0, 1, num = 1001), plotHandle = plt):
-        plotHandle.plot(x, [self.fun_q(xi) for xi in x])
-        plotHandle.plot(x, [self.int_q(xi) for xi in x])
-        plotHandle.plot((0, 1), (-self.LAMBDA * self.h_0**(self.M+2), -self.LAMBDA * self.h_0**(self.M+2)), alpha=0.3)
+        plotHandle.plot(x*self.L, [self.fun_q(xi)*self.Q for xi in x])
+        plotHandle.plot(x*self.L, [self.int_q(xi)*self.Q for xi in x])
+        plotHandle.plot((0, self.L), (-self.Q * self.LAMBDA * self.h_0**(self.M+2), -self.Q*self.LAMBDA * self.h_0**(self.M+2)), alpha=0.3)
         
     def plotGlacier(self, x = np.linspace(0, 1, num = 1001), plotHandle = plt):
         
@@ -89,10 +88,11 @@ class StationaryGlacier:
         if not(self.flowCalculated):
             self.calculateFlow()
         
-        plotHandle.ylabel('$h^*$'); 
-        plotHandle.xlabel('$x^*$'); 
-        plotHandle.ylim(((np.min(self.h) - 0.1)*self.H, self.H*(np.max(self.h)+0.1)))
+#        plotHandle.ylabel('$h^*$'); 
+#        plotHandle.xlabel('$x^*$'); 
+#        plotHandle.ylim(((np.min(self.h) - 0.1)*self.H, self.H*(np.max(self.h)+0.1)))
 #        plotHandle.axis('equal')
+        print(np.max(self.u*(self.L * self.Q / self.H)))
         plotHandle.plot(self.L*x, self.H*self.h)
         plotHandle.quiver(self.xx*self.L, self.zz*self.H, self.u*(self.L * self.Q / self.H), self.v*self.Q)
 
@@ -125,23 +125,30 @@ def linear_int_q(dq, x_s, x_f):
     return int_q
 
 
-q_bergen = lambda x: 5.0-12.0*x
+q_bergen = lambda x: .25-1.0*x**2
+#q_bergen = lambda x: np.arctan(-x)
+
     
 q_0 = linear_q(8.79, 0.2, 0.8)
 iq = linear_int_q(8.79, 0.2, 0.8)
 
 
-fig1 = plt.figure()
+fig, (ax1, ax2) = plt.subplots(2, 1)
 
 G_bergen = StationaryGlacier(50, 1.0, 1000, .5, 9.3E-25, 3, 1000, 9.81, 10, 0.2 ,0.8)
 G_bergen.setQ(q_bergen)
-G_bergen.plotGlacier()
-G_bergen.calculateFlow()
+G_bergen.plotQ(plotHandle = ax1)
+G_bergen.plotGlacier(plotHandle = ax2)
+fig.savefig("stationary_glacier.pdf")
 plt.show()
 
-G_linear = StationaryGlacier(50, 1.0, 1000, .5, 9.3E-25, 3, 1000, 9.81, 10, 0.5 ,0.9)
+
+fig, (ax1, ax2) = plt.subplots(2, 1)
+G_linear = StationaryGlacier(50, 2.0, 1000, 5.0, 9.3E-25, 3, 1000, 9.81, 10, 0.1 ,0.9)
 G_linear.generateLinearQ()
-G_linear.plotGlacier()
+G_linear.plotQ(plotHandle = ax1)
+G_linear.plotGlacier(plotHandle = ax2)
+fig.savefig("stationary_linear_glacier.pdf")
 #G_1.plotGlacier()
 
 
