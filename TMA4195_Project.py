@@ -18,14 +18,20 @@ m = 3
 rho = 1000
 g = 9.81
 alpha = 25*np.pi/180
+alpha_s = 2*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
+Theta_s = rho*g*H*np.sin(alpha_s)
 kappa = 2*H**2/(Q*L)*mu*Theta**m
+kappa_s = 2*H**2/(Q*L)*mu*Theta_s**m
 
-def flux(h,d):
+def flux(h,d,dx):
     return kappa*np.power(h-d,m+2)/(m+2)
 
-def shallowFlux(h):
-    return kappa/(m+2)*np.power(np.abs(H/(L*np.tan(alpha))*np.diff(h)*150/L-1),m-1)*(1-H/(L*np.tan(alpha))*np.diff(h)*150/L)*np.power(h,m+2)
+def shallowFlux(h,d,dx):
+    h_x = np.append(0,np.diff(h))/dx
+    h_x[1] = 0
+    h_x[-1] = 0
+    return kappa_s/(m+2)*np.power(np.abs(H/(L*np.tan(alpha_s))*h_x-1),m-1)*(1-H/(L*np.tan(alpha_s))*h_x)*np.power(h-d,m+2)
 
 #from analytical import analytical
 
@@ -77,15 +83,15 @@ def h_solution(method, T1, T2):
     #Here we compute the maximum value of f'(u).
     s = np.linspace(0,50,1001)
     #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
-    dfv = max(np.diff(flux(s,np.zeros(1001)))/np.diff(s))
+    dfv = max(np.diff(flux(s,np.zeros(1001),dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
     
     if method == 'upw':
         # Coarser grid
         x  = np.arange(-0.5*dx,L+1.5*dx,dx)
-        #h0 = np.ones(N//3 + 1)*H
-        h0 = np.zeros(N//3 + 1)*H
+        h0 = np.ones(N//3 + 1)*H
+        #h0 = np.zeros(N//3 + 1)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 1)*H)
 
         
@@ -106,7 +112,7 @@ def h_solution(method, T1, T2):
         plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
         plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
         plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
 
         plt.title("Upwind")
         # The following commented out section saves the plots
@@ -138,11 +144,54 @@ def h_solution(method, T1, T2):
         """
 
 
-#h_solution('upw', 1,2500)
+h_solution('upw', 1,2500)
 
 
+def h_solution_11(method, T1, T2):
+    # Solutions on coarser grids
+    N  = 150
+    dx = L/N
+    
+    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    d = np.zeros(N+2)
+    
+    #Here we compute the maximum value of f'(u).
+    s = np.linspace(0,50,1001)
+    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
+    dfv = max(np.diff(shallowFlux(s,np.zeros(1001),dx))/np.diff(s))
+    print(dfv)
+    df = lambda u: np.zeros(len(u)) + dfv
+    
+    
+    if method == 'upw':
+        # Coarser grid
+        x  = np.arange(-0.5*dx,L+1.5*dx,dx)
+        #h0 = np.ones(N//3 + 1)*H
+        h0 = np.zeros(N//3 + 1)*H
+        h0 = np.append(h0,np.zeros(N//3*2 + 1)*H)
 
+        
+        
+        # Compute solutions with the three classical schemes
+        hu = upw(h0, 0.995, dx, T1, shallowFlux, df, inflow, production, d)
+        #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
+        #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
+        #hu3 = upw(h0,0.995, dx, T1*100, shallowFlux, df, inflow, production, d)
+        #hu4 = upw(h0,0.995, dx, T1*1000, shallowFlux, df, inflow, production, d)
+        #hu5 = upw(h0,0.995, dx, T1*10000, shallowFlux, df, inflow, production, d)
 
+        # Plot results
+        plt.figure()
+        plt.plot(x[1:-1], hu[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        #plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+
+        plt.title("Upwind")
+#h_solution_11("upw",100,0)
 
 
 def film():
@@ -186,4 +235,4 @@ def film():
                                   interval = 1, blit=True)
     
     plt.show()
-film()
+#film()
