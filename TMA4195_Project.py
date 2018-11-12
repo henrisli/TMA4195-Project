@@ -66,49 +66,47 @@ def production(h,*args):
             q[i] = 0
     return q
 
-def retreating_production(h,k):
+def retreating_production(h,k, d):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 + 1 - k//20:
+        if i < n/3 + 1 - k//400:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 + 1 - k//20))/(n/6) 
+            q[i] = 1-(i-(n/3 + 1 - k//400))/(n/6) 
             
-        if h[i]<1e-15 and q[i]<1e-16:
+        if h[i]<1e-16 and q[i]<1e-16:
             q[i] = 0
     return q
 
-def advancing_production(h,k):
+def advancing_production(h,k,d):
     n = len(h) - 2
     k -= 1000
-    if k//20>n/3+1:
-        k = 20*(n/3+1)
+    if k//400>n/3+1:
+        k = 400*(n/3+1)
     q = np.zeros(n+2)
     for i in range(n+2):
-        if i < k//20:
+        if i < k//400:
             q[i] = 1
         else:
-            q[i] = 1 - (i - k//20)/(n/6)
+            q[i] = 1 - (i - k//400)/(n/6)
             
-        if h[i]<1e-15 and q[i] < 1e-16:
+        if h[i]<1e-16 and q[i] < 1e-16:
             q[i] = 0
     return q
-
 
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
-def h_solution(method, T1, T2, T3, T4, T5, T6):
+def h_solution(method, T1, T2, T3, T4, T5, T6, production):
     # Solutions on coarser grids
     N  = 300
     dx = 1/N
     
-    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
     d = np.zeros(N+2)
     
     #Here we compute the maximum value of f'(u).
     s = np.linspace(0,2,1001)
-    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
+    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6/H,dx))/np.diff(s))
     dfv = max(np.diff(flux(s,np.zeros(1001),dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
@@ -121,9 +119,11 @@ def h_solution(method, T1, T2, T3, T4, T5, T6):
         h0 = np.append(h0,np.zeros(N//3*2 + 1))
 
         
+        G = StationaryGlacier(H, .0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,.8725)
+        G.generateLinearQ()
         
         # Compute solutions with the three classical schemes
-        hu, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, advancing_production, d)
+        hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
         #print(t)
         #hu_r, tr = upw(hu, 0.995, dx, T5, flux, df, inflow, retreating_production, d)
         hu2, t2 = upw(h0,0.995, dx, T2, flux, df, inflow, production, d)
@@ -131,27 +131,31 @@ def h_solution(method, T1, T2, T3, T4, T5, T6):
         hu4, t4 = upw(h0,0.995, dx, T4, flux, df, inflow, production, d)
         hu5, t5 = upw(h0,0.995, dx, T5, flux, df, inflow, production, d)
         hu6, t6 = upw(h0,0.995, dx, T6, flux, df, inflow, production, d)
+        #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6/H
+        hu1 += d
+        hu2 += d
+        hu3 += d
+        hu4 += d
+        hu5 += d
+        hu6 += d
         
-        G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
-        G.generateLinearQ()
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = int(round(t1*100))) # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(t1*100))) # We dont want to plot fictitious nodes, thereby the command [1:-1].
         #plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = "Retreating")
         plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(t2*100)))
         plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(t3*100)))
         plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(t4*100)))
         plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(t5*100)))
         plt.plot(x[1:-1]*L, hu6[1:-1]*H, '-', markersize = 3, label = int(round(t6*100)))
-        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.")
-        
-        #plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3)
-        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H+d[1:-1]*H, '-', markersize = 3, label = "Std S.")
+
+        plt.plot(x[1:-1]*L, d[1:-1]*H, '-', markersize = 3, label = "d(x)")
         plt.legend(loc = 1, fontsize = 7)
 
         plt.title("Height profile of advancing glacier")
         # The following commented out section saves the plots
-        plt.savefig("Advancing_glacier.pdf")
+        #plt.savefig("Advancing_glacier_sin.pdf")
         """
     
     elif method == 'god':
@@ -175,8 +179,12 @@ def h_solution(method, T1, T2, T3, T4, T5, T6):
             plt.savefig("solution_high_cont.pdf")
         """
 
+#Advancing:
+h_solution('upw', 2515,4716,9433,18867,31444,46000, advancing_production)
 
-h_solution('upw', 1250,2500,5000,7550,10050,18850)
+
+#Retreating
+#h_solution('upw', 6289, 18867, 31444, 50311, 62888, 72500, retreating_production)
 
 
 def h_solution_11(T1):
