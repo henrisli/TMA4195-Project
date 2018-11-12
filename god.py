@@ -56,4 +56,4 @@ def god(h0, cfl, dx, T, flux, dflux, boundary, production,d):
     phi[1:-1] = limiter(dh[:-1], dh[1:])
     phi[0] = phi[-2]
     phi[-1] = phi[1]
-    return h, phi
+    return h, phi, t
