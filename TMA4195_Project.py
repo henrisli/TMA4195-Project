@@ -9,7 +9,7 @@ from upw import upw
 from upw2 import upw2
 #from god import god
 from siaflat import siaflat
-#from steady_state import StationaryGlacier
+from steady_state import StationaryGlacier
 
 # Height equation flux function
 H = 50
@@ -114,12 +114,12 @@ def h_solution(method, T1, T2):
         #hu4, t4 = upw(h0,0.995, dx, T1*1000, flux, df, inflow, production, d)
         #hu5, t5 = upw(h0,0.995, dx, T1*10000, flux, df, inflow, production, d)
         
-        G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 0.33 ,.89)
-        
+        G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
+        G.generateLinearQ()
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = " ") # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = " ")
+        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = "Advancing") # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = "Retreating")
         plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
         #plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3)
         #plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3)
@@ -159,7 +159,7 @@ def h_solution(method, T1, T2):
         """
 
 
-h_solution('upw', 300,2000)
+#h_solution('upw', 3000,2000)
 
 
 def h_solution_11(method, T1, T2):
@@ -210,7 +210,7 @@ def h_solution_11(method, T1, T2):
 #h_solution_11("central",1,0)
 
 
-def film():
+def film(T1,T2):
 
     
     
@@ -219,11 +219,12 @@ def film():
     dx = 1/N
     
     s = np.linspace(0,2,1001)
-    d = np.sin(np.linspace(-np.pi,np.pi,1001))*6
+    #d = np.sin(np.linspace(-np.pi,np.pi,1001))*6
+    d = np.zeros(1001)
     dfv = max(np.diff(flux(s,d,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
-    d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
     d = np.zeros(N+2)
     
     
@@ -231,9 +232,9 @@ def film():
     h0 = np.zeros(N//3+1)
     h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, 3000, 2000, flux, df, inflow, production, retreating_production, d) + d
+    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, production, retreating_production, d)*50 + d[1:-1]
     plt.figure()
-    
+        
     tvalues = np.arange(1000)
     fig = plt.figure()
     xvalues = x*L
@@ -251,8 +252,9 @@ def film():
         line.set_ydata(np.ma.array(xvalues, mask=True))
         return line,
     
-    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, 30000+20000+1), init_func = init,
+    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1), init_func = init,
                                   interval = 1, blit=True)
     
     plt.show()
-#film()
+    
+film(3000,20)
