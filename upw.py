@@ -1,6 +1,5 @@
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 def upw(h0, cfl, dx, T, flux, df, boundary, production, d):
     h = np.copy(h0)
@@ -12,9 +11,9 @@ def upw(h0, cfl, dx, T, flux, df, boundary, production, d):
         #    dt = T-t
         t += dt
         h = boundary(h)  
-        f = flux(h, d)
+        f = flux(h, d, dx)
         q = production(h,k)
         h[i] = h[i] - dt/dx*(f[i]-f[i-1]) + dt*q[i]
         h[h<1e-06] = 0
         dt = cfl*dx/max(abs(df(h)))
-    return h
+    return h,t

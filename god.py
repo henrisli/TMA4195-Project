@@ -29,7 +29,7 @@ def god(h0, cfl, dx, T, flux, dflux, boundary, production,d):
         phi[0] = phi[-2]
         phi[-1] = phi[1]  
         hr = h + 0.5*phi
-        fr = flux(hr,d)
+        fr = flux(hr,d,dx)
         dfr = dflux(hr)
         mdf = max(dfr)
         f[j] = fr[j]
@@ -43,7 +43,7 @@ def god(h0, cfl, dx, T, flux, dflux, boundary, production,d):
         phi[0] = phi[-2]
         phi[-1] = phi[1]  
         hr = H + 0.5*phi
-        fr = flux(hr,d)
+        fr = flux(hr,d,dx)
         dfr = dflux(hr)
         mdf = np.maximum(dfr, mdf)
         mdf = max(mdf)
