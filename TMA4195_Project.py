@@ -9,7 +9,7 @@ from upw import upw
 from upw2 import upw2
 #from god import god
 from siaflat import siaflat
-from steady_state import StationaryGlacier
+#from steady_state import StationaryGlacier
 
 # Height equation flux function
 H = 50
@@ -70,10 +70,10 @@ def retreating_production(h,k):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 + 1 - k//100:
+        if i < n/3 + 1 - k//20:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 + 1 - k//100))/(n/6) 
+            q[i] = 1-(i-(n/3 + 1 - k//20))/(n/6) 
             
         if h[i]<1e-15 and q[i]<1e-16:
             q[i] = 0
@@ -113,16 +113,20 @@ def h_solution(method, T1, T2):
         #hu3, t3 = upw(h0,0.995, dx, T1*100, flux, df, inflow, production, d)
         #hu4, t4 = upw(h0,0.995, dx, T1*1000, flux, df, inflow, production, d)
         #hu5, t5 = upw(h0,0.995, dx, T1*10000, flux, df, inflow, production, d)
-
+        
+        G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 0.33 ,.89)
+        
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1]*L, hu_r[1:-1]*L, '-', markersize = 3)
+        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = " ") # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = " ")
+        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
         #plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3)
         #plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3)
         #plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3)
         #plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3)
         #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+        plt.legend()
 
         plt.title("Upwind")
         # The following commented out section saves the plots
@@ -155,7 +159,7 @@ def h_solution(method, T1, T2):
         """
 
 
-h_solution('upw', 30000,1)
+h_solution('upw', 300,2000)
 
 
 def h_solution_11(method, T1, T2):
@@ -211,21 +215,23 @@ def film():
     
     
     # Solutions on coarser grids
-    N  = 150
+    N  = 600
     dx = 1/N
-    d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
-    d = np.zeros(N+2)
     
-    s = np.linspace(0,3,1001)
+    s = np.linspace(0,2,1001)
     d = np.sin(np.linspace(-np.pi,np.pi,1001))*6
     dfv = max(np.diff(flux(s,d,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
+    
+    d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    d = np.zeros(N+2)
+    
     
     #h0 = np.ones(N//3+1)*H
     h0 = np.zeros(N//3+1)
     h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, 25000, 10000, flux, df, inflow, production, retreating_production, d) + d
+    hu = upw2(h0,0.995, dx, 3000, 2000, flux, df, inflow, production, retreating_production, d) + d
     plt.figure()
     
     tvalues = np.arange(1000)
@@ -237,7 +243,7 @@ def film():
     y1 = hu*H
     fig, ax = plt.subplots()
     
-    line, = ax.plot(xvalues, np.linspace(-6,50,152))
+    line, = ax.plot(xvalues, np.linspace(-6,60,602))
     def animate(i):
         line.set_ydata(y1[i])
         return line,
@@ -245,7 +251,7 @@ def film():
         line.set_ydata(np.ma.array(xvalues, mask=True))
         return line,
     
-    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, 8000+10000+1), init_func = init,
+    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, 30000+20000+1), init_func = init,
                                   interval = 1, blit=True)
     
     plt.show()
