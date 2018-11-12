@@ -34,7 +34,7 @@ def shallowFlux(h,d,dx):
     h_x = np.append(0,np.diff(h))/dx
     h_x[1] = 0
     h_x[-1] = 0
-    return kappa_s/(m+2)*np.power(np.abs(gamma*h_x-1),m-1)*(1-gamma*h_x)*np.power(h-d,m+2)
+    return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h-d,m+2)
 
 def D(h,d,dx):
     h_x = np.append(0,np.diff(h))/dx
@@ -176,7 +176,7 @@ def h_solution(method, T1, T2):
         """
 
 
-h_solution('upw', 6500,1700)
+#h_solution('upw', 6500,1700)
 
 
 def h_solution_11(method, T1, T2):
@@ -204,7 +204,7 @@ def h_solution_11(method, T1, T2):
         dt = 0.495*dx/max(abs(df(h0)))
         print(dt)
         # Compute solutions with the three classical schemes
-        hu, a = siaflat(1, N, h0, dt,30000*dt, production, d)
+        hu, a = siaflat(1, N, h0, dt, 7500*dt, production, d)
         print(sum(a))
         #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
         #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
@@ -226,7 +226,7 @@ def h_solution_11(method, T1, T2):
 
         plt.title("Central")
         
-#h_solution_11("central",1,0)
+h_solution_11("central",1,0)
 
 
 def film(T1,T2):
