@@ -79,11 +79,28 @@ def retreating_production(h,k):
             q[i] = 0
     return q
 
+def advancing_production(h,k):
+    n = len(h) - 2
+    k -= 1000
+    if k//20>n/3+1:
+        k = 20*(n/3+1)
+    q = np.zeros(n+2)
+    for i in range(n+2):
+        if i < k//20:
+            q[i] = 1
+        else:
+            q[i] = 1 - (i - k//20)/(n/6)
+            
+        if h[i]<1e-15 and q[i] < 1e-16:
+            q[i] = 0
+    return q
+
+
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
 def h_solution(method, T1, T2):
     # Solutions on coarser grids
-    N  = 600
+    N  = 300
     dx = 1/N
     
     #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
@@ -106,7 +123,7 @@ def h_solution(method, T1, T2):
         
         
         # Compute solutions with the three classical schemes
-        hu, t = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
+        hu, t = upw(h0, 0.995, dx, T1, flux, df, inflow, advancing_production, d)
         print(t)
         hu_r, tr = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
         #hu2, t2 = upw(h0,0.995, dx, T1*10, flux, df, inflow, production, d)
@@ -159,7 +176,7 @@ def h_solution(method, T1, T2):
         """
 
 
-#h_solution('upw', 3000,2000)
+#h_solution('upw', 22000,5500)
 
 
 def h_solution_11(method, T1, T2):
@@ -215,7 +232,7 @@ def film(T1,T2):
     
     
     # Solutions on coarser grids
-    N  = 600
+    N  = 300
     dx = 1/N
     
     s = np.linspace(0,2,1001)
@@ -232,19 +249,21 @@ def film(T1,T2):
     h0 = np.zeros(N//3+1)
     h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, production, retreating_production, d)*50 + d[1:-1]
+    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production, d) + d[1:-1]
     plt.figure()
         
     tvalues = np.arange(1000)
     fig = plt.figure()
-    xvalues = x*L
+    xvalues = x[1:-1]*L
     xg = xvalues
     yg = tvalues
     xg, yg = np.meshgrid(xg, yg)
     y1 = hu*H
     fig, ax = plt.subplots()
+    G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
+    G.generateLinearQ()
     
-    line, = ax.plot(xvalues, np.linspace(-6,60,602))
+    line, = ax.plot(xvalues, np.linspace(-6,60,N))
     def animate(i):
         line.set_ydata(y1[i])
         return line,
@@ -257,4 +276,4 @@ def film(T1,T2):
     
     plt.show()
     
-film(3000,20)
+film(22000,5500)
