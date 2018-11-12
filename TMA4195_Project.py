@@ -8,6 +8,8 @@ import matplotlib.animation as animation
 from upw import upw
 from upw2 import upw2
 from god import god
+from diffusion import diffusion
+from siaflat import siaflat
 
 # Height equation flux function
 H = 50
@@ -18,11 +20,12 @@ m = 3
 rho = 1000
 g = 9.81
 alpha = 25*np.pi/180
-alpha_s = 2*np.pi/180
+alpha_s = 3*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
 Theta_s = rho*g*H*np.sin(alpha_s)
 kappa = 2*H**2/(Q*L)*mu*Theta**m
 kappa_s = 2*H**2/(Q*L)*mu*Theta_s**m
+gamma = H/(L*np.tan(alpha_s))
 
 def flux(h,d,dx):
     return kappa*np.power(h-d,m+2)/(m+2)
@@ -31,7 +34,13 @@ def shallowFlux(h,d,dx):
     h_x = np.append(0,np.diff(h))/dx
     h_x[1] = 0
     h_x[-1] = 0
-    return kappa_s/(m+2)*np.power(np.abs(H/(L*np.tan(alpha_s))*h_x-1),m-1)*(1-H/(L*np.tan(alpha_s))*h_x)*np.power(h-d,m+2)
+    return kappa_s/(m+2)*np.power(np.abs(gamma*h_x-1),m-1)*(1-gamma*h_x)*np.power(h-d,m+2)
+
+def D(h,d,dx):
+    h_x = np.append(0,np.diff(h))/dx
+    h_x[1] = 0
+    h_x[-1] = 0
+    return kappa_s/(m+2)*np.power(np.abs(gamma*h_x-1),m-1)*np.power(h-d,m+2)
 
 #from analytical import analytical
 
@@ -55,7 +64,7 @@ def production(h,*args):
             
         if h[i]==0 and q[i]<0:
             q[i] = 0
-    return q*1e+03
+    return q*1e+02
 
 def retreating_production(h,k):
     n = len(h) - 2
@@ -97,21 +106,22 @@ def h_solution(method, T1, T2):
         
         
         # Compute solutions with the three classical schemes
-        hu = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
-        #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
-        hu2 = upw(h0,0.995, dx, T1*10, flux, df, inflow, production, d)
-        hu3 = upw(h0,0.995, dx, T1*100, flux, df, inflow, production, d)
-        hu4 = upw(h0,0.995, dx, T1*1000, flux, df, inflow, production, d)
-        hu5 = upw(h0,0.995, dx, T1*10000, flux, df, inflow, production, d)
+        hu, t = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
+        print(t)
+        #hu_r, tr = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
+        #hu2, t2 = upw(h0,0.995, dx, T1*10, flux, df, inflow, production, d)
+        #hu3, t3 = upw(h0,0.995, dx, T1*100, flux, df, inflow, production, d)
+        #hu4, t4 = upw(h0,0.995, dx, T1*1000, flux, df, inflow, production, d)
+        #hu5, t5 = upw(h0,0.995, dx, T1*10000, flux, df, inflow, production, d)
 
         # Plot results
         plt.figure()
         plt.plot(x[1:-1], hu[1:-1], '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
         #plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
-        plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
 
         plt.title("Upwind")
@@ -144,7 +154,7 @@ def h_solution(method, T1, T2):
         """
 
 
-h_solution('upw', 1,2500)
+#h_solution('upw', 10000,2500)
 
 
 def h_solution_11(method, T1, T2):
@@ -159,21 +169,20 @@ def h_solution_11(method, T1, T2):
     s = np.linspace(0,50,1001)
     #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
     dfv = max(np.diff(shallowFlux(s,np.zeros(1001),dx))/np.diff(s))
-    print(dfv)
     df = lambda u: np.zeros(len(u)) + dfv
     
     
-    if method == 'upw':
+    if method == 'central':
         # Coarser grid
         x  = np.arange(-0.5*dx,L+1.5*dx,dx)
         #h0 = np.ones(N//3 + 1)*H
         h0 = np.zeros(N//3 + 1)*H
         h0 = np.append(h0,np.zeros(N//3*2 + 1)*H)
 
-        
-        
+        dt = 0.495*dx/max(abs(df(h0)))
         # Compute solutions with the three classical schemes
-        hu = upw(h0, 0.995, dx, T1, shallowFlux, df, inflow, production, d)
+        hu, a = siaflat(L, N, h0, 0.495*dx/max(abs(df(h0))),4100*dt, production, d)
+        print(sum(a))
         #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
         #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
         #hu3 = upw(h0,0.995, dx, T1*100, shallowFlux, df, inflow, production, d)
@@ -190,8 +199,8 @@ def h_solution_11(method, T1, T2):
         #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
 
-        plt.title("Upwind")
-#h_solution_11("upw",100,0)
+        plt.title("Central")
+h_solution_11("central",1,0)
 
 
 def film():
