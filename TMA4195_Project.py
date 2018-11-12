@@ -100,7 +100,7 @@ def advancing_production(h,k):
 # and Godunov schemes..
 def h_solution(method, T1, T2):
     # Solutions on coarser grids
-    N  = 300
+    N  = 90
     dx = 1/N
     
     #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
@@ -176,19 +176,19 @@ def h_solution(method, T1, T2):
         """
 
 
-#h_solution('upw', 22000,5500)
+h_solution('upw', 6500,1700)
 
 
 def h_solution_11(method, T1, T2):
     # Solutions on coarser grids
-    N  = 600
+    N  = 300
     dx = 1/N
     
     #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
     d = np.zeros(N+2)
     
     #Here we compute the maximum value of f'(u).
-    s = np.linspace(0,4,1001)
+    s = np.linspace(0,2,1001)
     #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
     dfv = max(np.diff(shallowFlux(s,np.zeros(1001),dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
@@ -204,23 +204,25 @@ def h_solution_11(method, T1, T2):
         dt = 0.495*dx/max(abs(df(h0)))
         print(dt)
         # Compute solutions with the three classical schemes
-        hu, a = siaflat(1, N, h0, dt,5000*dt, production, d)
+        hu, a = siaflat(1, N, h0, dt,30000*dt, production, d)
         print(sum(a))
         #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
         #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
         #hu3 = upw(h0,0.995, dx, T1*100, shallowFlux, df, inflow, production, d)
         #hu4 = upw(h0,0.995, dx, T1*1000, shallowFlux, df, inflow, production, d)
         #hu5 = upw(h0,0.995, dx, T1*10000, shallowFlux, df, inflow, production, d)
-
+        
+        
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = "Advancing") # We dont want to plot fictitious nodes, thereby the command [1:-1].
         #plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
         #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+        plt.legend()
 
         plt.title("Central")
         
@@ -276,4 +278,4 @@ def film(T1,T2):
     
     plt.show()
     
-film(22000,5500)
+#film(22000,5500)
