@@ -8,8 +8,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class StationaryGlacier:
+    """Exceptions are documented in the same way as classes.
+
+    Args:
+        H (float): Scale of height
+        H_0 (float): Height at x = 0, input as a multiple of H
+        L (float): Scale of length
+        Q (float): Downpour in meters per year
+        mu (float): Glacier modelling parameter mu
+        m (float):  Glacier modelling parameter m
+        density (float): Density of modelled fluid
+        angle (float): Slope of glacier in degrees
+        x_s (float): Start
+    """
+    
     def __init__(self, heightScale, heightStart, lengthScale, downpourYear, 
                  parameterMu, parameterM, density, gravity, angleInDegrees, x_s, x_f):
+        
+        
+        
 
         self.H = heightScale
         self.h_0 = heightStart
@@ -20,6 +37,8 @@ class StationaryGlacier:
         self.RHO = density
         self.G = gravity
         self.ALPHA = angleInDegrees / 180 * np.pi
+        
+        self.T = self.H / self.Q
         
         self.x_s = x_s
         self.x_f = x_f
@@ -47,16 +66,18 @@ class StationaryGlacier:
         self.int_q_approx = np.cumsum(dq_on_grid)
         self.int_q = lambda x: np.interp(x, np.linspace(0, 1, num = 10000), self.int_q_approx)
         
-    def calculateHeight(self, x = np.linspace(0, 1, num = 1001)):
+    def calculateHeight(self):
+        x = np.linspace(0, 1, num = 1001)
         core= self.h_0**(self.M+2) + [self.int_q(xi) for xi in x] / (self.LAMBDA)
         core[core < 0] = 0 
 
         h = np.power(core, 1/(self.M+2))
         self.h = h
+        self.h_approx = lambda x: np.interp(x, np.linspace(0, 1, num=1001), self.h)
         
     def calculateFlow(self):
         h_max = np.max(self.h)
-        xx, zz = np.meshgrid(np.linspace(0, 1, num=11), np.linspace(0,h_max, num=11))
+        xx, zz = np.meshgrid(np.linspace(0.1, 1, num=10), np.linspace(0.1,h_max, num=10))
         h_approx = lambda x: np.interp(x, np.linspace(0, 1, num=1001), self.h)
         
         valid1 = h_approx(xx) > 0
@@ -69,13 +90,44 @@ class StationaryGlacier:
         q = np.vectorize(self.fun_q)
         
         u = self.KAPPA * (h_approx(xx)**(self.M+1) - (h_approx(xx) - zz)**(self.M+1))/(self.M+1)
-        v = (1 - ((1 - zz / h_approx(xx))**(self.M)))/h_approx(xx)*(q(xx))
+        v = (((1 - zz / h_approx(xx))**(self.M))-1)/h_approx(xx)*(q(xx))
         
         self.xx = xx
         self.zz = zz
         self.u = u
         self.v = v
+        self.flowCalculated = True
         
+    def calculatePath(self, x0, T_final=1.0):
+        if  np.any(self.h == None):
+            self.calculateHeight()
+        
+        if not(self.flowCalculated):
+            self.calculateFlow()
+        
+        h_approx = lambda x: np.interp(x, np.linspace(0, 1, num = 1001), self.h)
+        
+        num = 10000
+        x = np.zeros((num, 2))
+        x[0] = x0
+        dt = T_final / num
+        for i in range(num-1):
+            if (x[i, 0] > 1 or x[i, 1] > h_approx(x[i, 0]) or i == num) :
+                x = x[:i]
+                T_final = i * dt
+                break
+            u = self.KAPPA * (h_approx(x[i, 0])**(self.M+1) - (h_approx(x[i,0]) - x[i,1])**(self.M+1))/(self.M+1)
+            v = -(1 - ((1 - x[i,1] / h_approx(x[i,0]))**(self.M)))/h_approx(x[i,0])*(self.fun_q(x[i,0]))
+            x[i+1, 0] = x[i,0] + u * dt
+            x[i+1, 1] = x[i,1] + v * dt
+        plt.text(x[-1, 0]*self.L, x[-1, 1]*self.H, "T={:.1f} yr".format(T_final*self.T/(24*365*3600)))
+        plt.plot(x[:, 0]*self.L, x[:, 1]*self.H)
+        
+    def getHeight(self, x):
+        """Returns the height of the glacier at unscaled location x"""
+        if  np.any(self.h == None):
+            self.calculateHeight()
+        return self.h_approx(x)
         
     def plotQ(self, x = np.linspace(0, 1, num = 1001), plotHandle = plt):
         plotHandle.plot(x*self.L, [self.fun_q(xi)*self.Q for xi in x]) # 24*3600*365*100
@@ -86,8 +138,8 @@ class StationaryGlacier:
     def plotGlacier(self, x = np.linspace(0, 1, num = 1001), plotHandle = plt,
                     plotFlow = True):
         
-        if self.h == None:
-            self.calculateHeight(x)
+        if  np.any(self.h == None):
+            self.calculateHeight()
         
         if not(self.flowCalculated):
             self.calculateFlow()
@@ -99,7 +151,7 @@ class StationaryGlacier:
         print(np.max(self.u)*(self.L * self.Q / self.H))
         plotHandle.plot(self.L*x, self.H*self.h)
         if plotFlow:
-            plotHandle.quiver(self.xx*self.L, self.zz*self.H, self.u*(self.L * self.Q / self.H), self.v*self.Q)
+            plotHandle.quiver((-0.05+self.xx)*self.L, (-0.05 + self.zz)*self.H, self.u*(self.L * self.Q / self.H), self.v*self.Q, alpha = 1.0)
 
 
 def linear_q(dq, x_s, x_f):
@@ -130,30 +182,46 @@ def linear_int_q(dq, x_s, x_f):
     return int_q
 
 
-q_bergen = lambda x: .25-1.0*x**2
-#q_bergen = lambda x: np.arctan(-x)
-
+if __name__  == "__main__":
+    q_bergen = lambda x: .25-1.0*x**2
+    #q_bergen = lambda x: np.arctan(-x)
     
-q_0 = linear_q(20., 0.60, 0.90)
-
-
-fig, (ax1, ax2) = plt.subplots(2, 1)
-
-G_bergen = StationaryGlacier(50, 0.0, 2000, 2.0, 9.3E-25, 3, 1000, 9.81, 25.0, 0.60 ,0.9)
-G_bergen.setQ(q_0)
-G_bergen.plotQ(plotHandle = ax1)
-G_bergen.plotGlacier(plotHandle = ax2)
-fig.savefig("stationary_glacier.pdf")
-plt.show()
-
-
-fig, (ax1, ax2) = plt.subplots(2, 1)
-
-G_linear = StationaryGlacier(50, 0.0, 2000, 2.0, 9.3E-25, 3, 1000, 9.81, 25.0, 0.60 ,.9)
-G_linear.generateLinearQ()
-G_linear.plotQ(plotHandle = ax1)
-G_linear.plotGlacier(plotHandle = ax2)
-fig.savefig("stationary_linear_glacier.pdf")
-#G_1.plotGlacier()
+        
+    q_0 = linear_q(6., 0.33, 1.0)
+    
+    
+    #fig, (ax1, ax2) = plt.subplots(2, 1)
+    
+    #G_bergen = StationaryGlacier(50, 0.0, 2000, 2.0, 9.3E-25, 3, 1000, 9.81, 25.0, 0.60 ,0.9)
+    #G_bergen.setQ(q_0)
+    #G_bergen.plotQ(plotHandle = ax1)
+    #G_bergen.plotGlacier(plotHandle = ax2)
+    #fig.savefig("stationary_glacier.pdf")
+    #plt.show()
+    
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    
+    G_linear = StationaryGlacier(50, .5, 6000, 2.0, 9.3E-25, 3, 1000, 9.81, 20.0, 0.60 ,.9)
+    G_linear.generateLinearQ()
+    G_linear.plotQ(plotHandle = ax1)
+    G_linear.calculateHeight()
+    G_linear.plotGlacier(plotHandle = ax2)
+    x_start = 0.25
+    G_linear.calculatePath(x0=(x_start, G_linear.h_approx(x_start)), T_final=3.0)
+    fig.savefig("stationary_linear_glacier.pdf")
+    #G_1.plotGlacier()
+    plt.show()
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    G_linear = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 0.33 ,.89)
+    #G_linear.generateLinearQ()
+    G_linear.setQ(q_0)
+    G_linear.plotQ(plotHandle = ax1)
+    G_linear.calculateHeight()
+    G_linear.plotGlacier(plotHandle = ax2)
+    x_start = 0.25
+    G_linear.calculatePath(x0=(x_start, G_linear.h_approx(x_start)), T_final=3.0)
+    fig.savefig("stationary_linear_glacier.pdf")
 
 
