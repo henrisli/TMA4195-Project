@@ -9,7 +9,7 @@ def siaflat(Lx,K,H0,deltat,tf,q,d):
 #    Gamma = 2 * A * (rho * g)**3 / 5
     H = 50
     L = 2000
-    Q = 3.5/(365*24*3600)
+    Q = 0.5/(365*24*3600)
     mu = 9.3e-25
     m = 3
     rho = 1000
@@ -19,9 +19,8 @@ def siaflat(Lx,K,H0,deltat,tf,q,d):
     kappa_s = 2*H**2/(Q*L)*mu*Theta_s**m
     Gamma = kappa_s/(m+2)
     gamma = H/(L*np.tan(alpha_s))
-    print(gamma)
-    H = H0
-    dx = 2 * Lx / K
+    H = np.copy(H0)
+    dx = 2* Lx / K
     N = int(np.rint(tf / deltat))
     deltat = tf / N
     k = np.arange(1,K+1,1)
@@ -30,14 +29,13 @@ def siaflat(Lx,K,H0,deltat,tf,q,d):
     t = 0
     dtlist = []
     for n in range(N):
-        print(n)
         Hrt = 0.5*(H[ek] + H[k])
         Hlt = 0.5*(H[k] + H[wk])
         a2rt = np.power(gamma*(H[ek] - H[k])-1,m-1) / (dx**2)
         a2lt = np.power(gamma*(H[k] - H[wk])-1,m-1) / (dx**2)
         Drt = Gamma * np.power(Hrt,m+2) * a2rt
         Dlt = Gamma * np.power(Hlt,m+2) * a2lt
-        H,dtadapt = diffusion(Lx,K,Drt,Dlt,H,deltat,q,d)
+        H,dtadapt = diffusion(Lx,K,Drt,Dlt,H,deltat,q,d,gamma)
         t += deltat
         dtlist = np.append(dtlist,dtadapt)
     return H, dtlist
