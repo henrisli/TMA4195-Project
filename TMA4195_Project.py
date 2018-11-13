@@ -2,6 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from mpl_toolkits.mplot3d.axes3d import Axes3D
+
 
 # Import schemes:
 from upw import upw
@@ -144,7 +146,7 @@ def h_solution(method, T1, T2, T3, T4, T5, production):
 
         plt.title("Height profile of retreating glacier")
         # The following commented out section saves the plots
-        plt.savefig("Retreating_glacier_sin.pdf")
+        plt.savefig("Retreating_glacier.pdf")
         """
     
     elif method == 'god':
@@ -172,7 +174,7 @@ def h_solution(method, T1, T2, T3, T4, T5, production):
 #h_solution('upw', 5333,10666,16000,22201,27500, advancing_production)
 
 #Retreating
-h_solution('upw', 5333, 10666, 16000, 22201, 35450, retreating_production)
+#h_solution('upw', 5333, 10666, 16000, 22201, 35450, retreating_production)
 
 
 def h_solution_11(T1):
@@ -225,7 +227,7 @@ def h_solution_11(T1):
 
 def film(T1,T2):    
     # Solutions on coarser grids
-    N  = 90
+    N  = 180
     dx = 1/N
     
     s = np.linspace(0,2,1001)
@@ -249,7 +251,7 @@ def film(T1,T2):
     xg, yg = np.meshgrid(xg, yg)
     y1 = hu*H
     
-    G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
+    G = StationaryGlacier(H, .5, L, Q*(365*24*3600), 9.3E-25, m, rho, g, alpha*(180/np.pi), 1/3 ,2/3)
     G.generateLinearQ()
     
     fig, ax = plt.subplots()
@@ -268,10 +270,22 @@ def film(T1,T2):
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1), init_func = init,
                                   interval = 1, blit=True)
     
-    ax.ani.save('line.mp4', fps = 400, dpi = 300)
+#    ax.ani.save('line.mp4', fps = 400, dpi = 300)
 #    ax.ani.to_html5_video(embed_limit=None)
     
-#    plt.show()
+    plt.show()
     
-film(22000,5500)
+#film(22000,5500)
 
+
+
+
+
+fig = plt.figure()
+ax = Axes3D(fig)
+x = np.arange(100)
+y = np.arange(100)
+x, y = np.meshgrid(x, y)
+z = np.array( [ np.sin( 1e-3 * t * np.arange(100)) for t in x ] ) #np.ones((100, 100)) 
+ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='Blues')
+plt.show()
