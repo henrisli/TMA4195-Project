@@ -257,35 +257,40 @@ def film(T1,T2):
     fig, ax = plt.subplots()
     ax.plot(xvalues, G.getHeight(x[1:-1])*H)
     
-    line, = ax.plot(xvalues, np.linspace(-6,60,N))
+    time_steps = 100
+#    time_steps = 10
+    
+    line, = ax.plot(xvalues, np.linspace(-6,H,N))
     def animate(i):
         line.set_ydata(y1[i])
+        ax.fill_between(xvalues, np.zeros(np.shape(y1[0])), y1[i], interpolate=True, facecolor='tab:blue')
+        ax.fill_between(xvalues, G.getHeight(x[1:-1])*H, y1[i], interpolate=True, facecolor='white')
         return line,
     def init():
         line.set_ydata(np.ma.array(xvalues, mask=True))
         return line,
     
+    ax.legend(['$h_0(x)$','$h(x, t)$'])
     
-    
-    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1), init_func = init,
+    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, time_steps), init_func = init,
                                   interval = 1, blit=True)
     
-#    ax.ani.save('line.mp4', fps = 400, dpi = 300)
+    ax.ani.save('file.gif', writer = 'imagemagick', fps = 60)    
 #    ax.ani.to_html5_video(embed_limit=None)
     
     plt.show()
     
-#film(22000,5500)
+film(37000,37000)
 
 
 
 
 
-fig = plt.figure()
-ax = Axes3D(fig)
-x = np.arange(100)
-y = np.arange(100)
-x, y = np.meshgrid(x, y)
-z = np.array( [ np.sin( 1e-3 * t * np.arange(100)) for t in x ] ) #np.ones((100, 100)) 
-ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='Blues')
-plt.show()
+#fig = plt.figure()
+#ax = Axes3D(fig)
+#x = np.arange(100)
+#y = np.arange(100)
+#x, y = np.meshgrid(x, y)
+#z = np.array( [ np.sin( 1e-3 * t * np.arange(100)) for t in x ] ) #np.ones((100, 100)) 
+#ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='Blues')
+#plt.show()
