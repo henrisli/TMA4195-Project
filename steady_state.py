@@ -67,6 +67,10 @@ class StationaryGlacier:
         self.int_q = lambda x: np.interp(x, np.linspace(0, 1, num = 10000), self.int_q_approx)
         
     def calculateHeight(self):
+        
+        
+        
+        
         x = np.linspace(0, 1, num = 1001)
         core= self.h_0**(self.M+2) + [self.int_q(xi) for xi in x] / (self.LAMBDA)
         core[core < 0] = 0 
@@ -214,7 +218,7 @@ if __name__  == "__main__":
     plt.show()
     
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    G_linear = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 0.33 ,.89)
+    G_linear = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3. ,.8752)
     #G_linear.generateLinearQ()
     G_linear.setQ(q_0)
     G_linear.plotQ(plotHandle = ax1)

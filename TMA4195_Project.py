@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-
 # Import schemes:
 from upw import upw
 from upw2 import upw2
@@ -226,7 +225,7 @@ def h_solution_11(T1):
 
 def film(T1,T2):    
     # Solutions on coarser grids
-    N  = 300
+    N  = 90
     dx = 1/N
     
     s = np.linspace(0,2,1001)
@@ -240,17 +239,21 @@ def film(T1,T2):
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
     hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
     plt.figure()
-        
-    tvalues = np.arange(1000)
+    
+    
+    tvalues = np.arange(200)
     fig = plt.figure()
     xvalues = x[1:-1]*L
     xg = xvalues
     yg = tvalues
     xg, yg = np.meshgrid(xg, yg)
     y1 = hu*H
-    fig, ax = plt.subplots()
+    
     G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
     G.generateLinearQ()
+    
+    fig, ax = plt.subplots()
+    ax.plot(xvalues, G.getHeight(x[1:-1])*H)
     
     line, = ax.plot(xvalues, np.linspace(-6,60,N))
     def animate(i):
@@ -260,9 +263,15 @@ def film(T1,T2):
         line.set_ydata(np.ma.array(xvalues, mask=True))
         return line,
     
+    
+    
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1), init_func = init,
                                   interval = 1, blit=True)
     
-    plt.show()
+    ax.ani.save('line.mp4', fps = 400, dpi = 300)
+#    ax.ani.to_html5_video(embed_limit=None)
     
-#film(22000,5500)
+#    plt.show()
+    
+film(22000,5500)
+
