@@ -1,15 +1,11 @@
 import numpy as np
 from diffusion import diffusion
+import matplotlib.pyplot as plt
 
-def siaflat(Lx,K,H0,deltat,tf,q,d):
-#    g = 9.81
-#    rho = 910.0
-#    secpera = 31556926
-#    A = 1.0e-12/secpera
-#    Gamma = 2 * A * (rho * g)**3 / 5
-    H = 50
-    L = 2000
-    Q = 0.5/(365*24*3600)
+def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary):
+    H = 100
+    L = 6000
+    Q = 2/(365*24*3600)
     mu = 9.3e-25
     m = 3
     rho = 1000
@@ -20,22 +16,35 @@ def siaflat(Lx,K,H0,deltat,tf,q,d):
     Gamma = kappa_s/(m+2)
     gamma = H/(L*np.tan(alpha_s))
     H = np.copy(H0)
-    dx = 2* Lx / K
-    N = int(np.rint(tf / deltat))
-    deltat = tf / N
     k = np.arange(1,K+1,1)
     ek = np.arange(2,K+2,1)
     wk = np.arange(0,K,1)
-    t = 0
+    t = 0.0
     dtlist = []
-    for n in range(N):
+    j = 0
+    while t < tf:
+        if t+dt > tf:
+            dt = tf-t
+        H = boundary(H)
         Hrt = 0.5*(H[ek] + H[k])
         Hlt = 0.5*(H[k] + H[wk])
-        a2rt = np.power(gamma*(H[ek] - H[k])-1,m-1) / (dx**2)
-        a2lt = np.power(gamma*(H[k] - H[wk])-1,m-1) / (dx**2)
+        a2rt = np.power(np.abs(gamma*(np.diff(H)[1:])/dx-1),m-1)
+        a2lt = np.power(np.abs(gamma*(np.diff(H)[:-1])/dx-1),m-1)
         Drt = Gamma * np.power(Hrt,m+2) * a2rt
         Dlt = Gamma * np.power(Hlt,m+2) * a2lt
-        H,dtadapt = diffusion(Lx,K,Drt,Dlt,H,deltat,q,d,gamma)
-        t += deltat
-        dtlist = np.append(dtlist,dtadapt)
+        #H,dtadapt,q_test = diffusion(dx,K,Drt,Dlt,H,dt,production,d,gamma,j)
+        mu_x = dt/(dx*dx)
+        Hb = H + d
+        q_p = production(H,j)
+        H[1:-1] = H[1:-1] + mu_x*Drt*(gamma*(Hb[2:] - Hb[1:-1])-dx) - mu_x*Dlt*(gamma*(Hb[1:-1]-Hb[:-2])-dx)+ dt*q_p[1:-1]
+        H[H<1e-06] = 0
+        maxD = [max(Dlt), max(Drt)]
+        maxD = max(maxD)
+        t += dt
+        dtlist = np.append(dtlist,dt)
+        j += 1
+    print(j)
+    print(maxD)
+    plt.figure()
+    plt.plot(q_p)
     return H, dtlist
