@@ -14,6 +14,7 @@ from steady_state import StationaryGlacier
 
 # Height equation flux function
 H = 100
+H0 = 0.5
 L = 6000
 Q = 2/(365*24*3600)
 mu = 9.3e-25
@@ -41,11 +42,8 @@ def shallowFlux(h, dx):
 #from analytical import analytical
 
 # The following imports a function for the boundary conditions
-def inflow(h, n=0):
-    if n == 0:
-        h[0] = 0.5
-    else:
-        h[0:n] = 0.5
+def inflow(h):
+    h[0] = H0
     return h
 
 # The following computes the production q, given a height profile h
@@ -78,16 +76,30 @@ def retreating_production(h,k):
 def advancing_production(h,k):
     n = len(h) - 2
     k -= 4201
-    if k//180>n/3:
-        k = 180*(n/3)
+    if k//300>n/3:
+        k = 300*(n/3)
     q = np.zeros(n+2)
     for i in range(n+2):
-        if i < k//180:
+        if i < k//300:
             q[i] = 1
         else:
-            q[i] = 1 - (i - k//180)/(n/12)
+            q[i] = 1 - (i - k//300)/(n/12)
             
         if h[i]<1e-16 and q[i] < 1e-16:
+            q[i] = 0
+    # Full production after 22201 iterations
+    return q
+
+def retreating_shallow_production(h,k):
+    n = len(h) - 2
+    q = np.zeros(n + 2)
+    for i in range(n + 2):
+        if i < n/3 - k//400:
+            q[i] = 1
+        else:
+            q[i] = 1-(i-(n/3 - k//400))/(n/12) 
+            
+        if h[i]<1e-16 and q[i]<1e-16:
             q[i] = 0
     return q
 
@@ -105,12 +117,13 @@ def advancing_shallow_production(h,k):
             
         if h[i]<1e-16 and q[i] < 1e-16:
             q[i] = 0
+    # Full production after 24801 iterations
     return q
 
 
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
-def h_solution(method, T1, T2, T3, T4, T5, production):
+def h_solution(method, T1, T2, T3, T4, T5, production, mov):
     # Solutions on coarser grids
     N  = 180
     dx = 1/N
@@ -124,12 +137,12 @@ def h_solution(method, T1, T2, T3, T4, T5, production):
     if method == 'upw':
         # Coarser grid
         x  = np.arange(-0.5*dx,1+1.5*dx,dx)
-        h0 = np.zeros(N//3 + 1)
-        h0 = np.append(h0,np.zeros(N//3*2 + 1))
-
-        
-        G = StationaryGlacier(H, 0.5, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
+        G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
         G.generateLinearQ()
+        if mov == "advancing":
+            h0 = np.zeros(N+2)
+        elif mov == "retreating":
+            h0 = G.getHeight(x)
         
         # Compute solutions with the three classical schemes
         hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production)
@@ -147,13 +160,17 @@ def h_solution(method, T1, T2, T3, T4, T5, production):
         plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(t4*100)))
         plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(t5*100)))
         
-        #plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.")
+        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.")
 
         plt.legend(loc = 1, fontsize = 7)
-
-        plt.title("Height profile of advancing glacier")
-        # The following commented out section saves the plots
-        #plt.savefig("Retreating_glacier.pdf")
+        
+        if mov == "advancing":
+            plt.title("Height profile of advancing glacier")
+            #plt.savefig("Advancing_glacier.pdf")
+        elif mov == "retreating":
+            plt.title("Height profile of retreating glacier")
+            #plt.savefig("Retreating_glacier.pdf")
+        
         """
     
     elif method == 'god':
@@ -171,20 +188,16 @@ def h_solution(method, T1, T2, T3, T4, T5, production):
         plt.title("Godunov")
         # The following commented out section saves the plots
         
-        if T == 0.5:
-            plt.savefig("solution_high_discont.pdf")
-        elif T == 1:
-            plt.savefig("solution_high_cont.pdf")
         """
 #Advancing:
-#h_solution('upw', 1, 2, 3, 4.16, 5.16, advancing_production)
-#h_solution('upw', 0.2, 0.4, 0.6, 0.8, 1.5, advancing_production)
+#h_solution('upw', 1, 2, 3, 4.16, 5.16, advancing_production, "advancing")
+#h_solution('upw', 0.2, 0.4, 0.6, 0.8, 1.5, advancing_production, "advancing")
 
 #Retreating
-#h_solution('upw', 1, 2, 3, 4.16, 6.65, retreating_production)
+#h_solution('upw', 1, 2, 3, 4.16, 6.65, retreating_production, "retreating")
 
 
-def h_solution_11(T1,T2,T3,T4,T5):
+def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     # Solutions on coarser grids
     N  = 150
     dx = 1/N
@@ -197,32 +210,30 @@ def h_solution_11(T1,T2,T3,T4,T5):
     dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
 
+    
     # Coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
-    #h0 = np.ones(N//3 + 1)
-    h0 = np.zeros(N//3 + 1)
-    h0 = np.append(h0,np.zeros(N//3*2 + 1))
-
+    h0 = np.zeros(N + 2)
     dt = 0.495*dx*dx/max(abs(df(h0)))
-    print(dt)
+    print("dt: ", dt)
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_s*180/np.pi, 1/3 ,2/3)
+    G.generateLinearQ()
+    if mov == "retreating":
+        h0 = explicit_scheme(dx,N,h0,dt,10,advancing_shallow_production,d,inflow)
+
 
     # Compute solutions with the three classical schemes
-    hu1, t1 = explicit_scheme(dx, N, h0, dt, T1, advancing_shallow_production, d, inflow)
-    #print("1")
-    hu2, t2 = explicit_scheme(dx, N, h0, dt, T2, advancing_shallow_production, d, inflow)
-    #print("2")
-    hu3, t3 = explicit_scheme(dx, N, h0, dt, T3, advancing_shallow_production, d, inflow)
-    #print("3")
-    hu4, t4 = explicit_scheme(dx, N, h0, dt, T4, advancing_shallow_production, d, inflow)
-    #print("4")
-    hu5, t5 = explicit_scheme(dx, N, h0, dt, T5, advancing_shallow_production, d, inflow)
-    #print("5")
+    hu1 = explicit_scheme(dx, N, h0, dt, T1, production, d, inflow)
+    hu2 = explicit_scheme(dx, N, h0, dt, T2, production, d, inflow)
+    hu3 = explicit_scheme(dx, N, h0, dt, T3, production, d, inflow)
+    hu4 = explicit_scheme(dx, N, h0, dt, T4, production, d, inflow)
+    hu5 = explicit_scheme(dx, N, h0, dt, T5, production, d, inflow)
+
     # Plot results
     plt.figure()
+    if mov=="retreating":
+          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "R.Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
     plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(T1*100)))
-    G = StationaryGlacier(H, 0.5, L, Q*(365*24*3600), mu, m, rho, g, 3, 1/3 ,2/3)
-    G.generateLinearQ()
-    
     plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(T2*100)))
     plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(T3*100)))
     plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(T4*100)))
@@ -231,11 +242,18 @@ def h_solution_11(T1,T2,T3,T4,T5):
 
     
     plt.legend(loc = 1, fontsize = 7)
-
-    plt.title("Height profile of advancing low slope glacier")
+    if mov=="advancing":
+        plt.title("Height profile of advancing low slope glacier")
+        plt.savefig("Advancing_glacier_gentle.pdf")
+    elif mov=="retreating":
+        plt.title("Height profile of retreating low slope glacier")
+        plt.savefig("Retreating_glacier_gentle.pdf")
         
-h_solution_11(1,2,3,5,10)
+#Advancing glacier:
+#h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
 
+#Retreating glacier:
+h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
 
 def film(T1,T2):    
     # Solutions on coarser grids
@@ -263,7 +281,7 @@ def film(T1,T2):
     xg, yg = np.meshgrid(xg, yg)
     y1 = hu*H
     
-    G = StationaryGlacier(H, .5, L, Q*(365*24*3600), 9.3E-25, m, rho, g, alpha*(180/np.pi), 1/3 ,2/3)
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*(180/np.pi), 1/3 ,2/3)
     G.generateLinearQ()
     
     fig, ax = plt.subplots()
@@ -300,7 +318,7 @@ def Plot_3D(T1,T2):
     dfv = max(np.diff(flux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
-    G = StationaryGlacier(H, 0.5, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
     G.generateLinearQ()
 
     

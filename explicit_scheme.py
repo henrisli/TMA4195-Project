@@ -1,6 +1,4 @@
 import numpy as np
-from diffusion import diffusion
-import matplotlib.pyplot as plt
 
 def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary):
     H = 100
@@ -20,7 +18,6 @@ def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary):
     ek = np.arange(2,K+2,1)
     wk = np.arange(0,K,1)
     t = 0.0
-    dtlist = []
     j = 0
     while t < tf:
         if t+dt > tf:
@@ -41,10 +38,5 @@ def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary):
         maxD = [max(Dlt), max(Drt)]
         maxD = max(maxD)
         t += dt
-        dtlist = np.append(dtlist,dt)
         j += 1
-    print(j)
-    print(maxD)
-    plt.figure()
-    plt.plot(q_p)
-    return H, dtlist
+    return H
