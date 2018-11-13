@@ -18,7 +18,7 @@ def diffusion(Lx,K,Dright,Dleft,h0,tf,q,d,gamma):
         mu_x = dt / (dx*dx)
         Hb = H + d
         q_p = q(H)
-        H[1:-1] = H[1:-1] + mu_x*Dright*(1-gamma*(Hb[2:] - Hb[1:-1])) - mu_x*Dleft*(1-gamma*(Hb[1:-1]-Hb[:-2]))+ q_p[1:-1] * dt
+        H[1:-1] = H[1:-1] + mu_x*Dright*(gamma*(Hb[2:] - Hb[1:-1])-dx) - mu_x*Dleft*(gamma*(Hb[1:-1]-Hb[:-2])-dx)+ q_p[1:-1] * dt
         H[H<1e-06] = 0
         t = t + dt
         count = count + 1

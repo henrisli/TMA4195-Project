@@ -7,7 +7,7 @@ import matplotlib.animation as animation
 from upw import upw
 from upw2 import upw2
 #from god import god
-from siaflat import siaflat
+from explicit_scheme import siaflat
 from steady_state import StationaryGlacier
 
 # Height equation flux function
@@ -33,7 +33,7 @@ def shallowFlux(h,d,dx):
     h_x = np.append(0,np.diff(h))/dx
     h_x[1] = 0
     h_x[-1] = 0
-    return kappa_s/(m+2)*np.power(np.abs(gamma*h_x-1),m-1)*(1-gamma*h_x)*np.power(h-d,m+2)
+    return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h-d,m+2)
 
 def D(h,d,dx):
     h_x = np.append(0,np.diff(h))/dx
@@ -65,49 +65,47 @@ def production(h,*args):
             q[i] = 0
     return q
 
-def retreating_production(h,k):
+def retreating_production(h,k, d):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 + 1 - k//20:
+        if i < n/3 + 1 - k//400:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 + 1 - k//20))/(n/6) 
+            q[i] = 1-(i-(n/3 + 1 - k//400))/(n/6) 
             
-        if h[i]<1e-15 and q[i]<1e-16:
+        if h[i]<1e-16 and q[i]<1e-16:
             q[i] = 0
     return q
 
-def advancing_production(h,k):
+def advancing_production(h,k,d):
     n = len(h) - 2
     k -= 1000
-    if k//20>n/3+1:
-        k = 20*(n/3+1)
+    if k//400>n/3+1:
+        k = 400*(n/3+1)
     q = np.zeros(n+2)
     for i in range(n+2):
-        if i < k//20:
+        if i < k//400:
             q[i] = 1
         else:
-            q[i] = 1 - (i - k//20)/(n/6)
+            q[i] = 1 - (i - k//400)/(n/6)
             
-        if h[i]<1e-15 and q[i] < 1e-16:
+        if h[i]<1e-16 and q[i] < 1e-16:
             q[i] = 0
     return q
-
 
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
-def h_solution(method, T1, T2):
+def h_solution(method, T1, T2, T3, T4, T5, T6, production):
     # Solutions on coarser grids
     N  = 300
     dx = 1/N
     
-    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
     d = np.zeros(N+2)
     
     #Here we compute the maximum value of f'(u).
     s = np.linspace(0,2,1001)
-    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
+    #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6/H,dx))/np.diff(s))
     dfv = max(np.diff(flux(s,np.zeros(1001),dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
@@ -120,38 +118,44 @@ def h_solution(method, T1, T2):
         h0 = np.append(h0,np.zeros(N//3*2 + 1))
 
         
+        G = StationaryGlacier(H, .0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,.8725)
+        G.generateLinearQ()
         
         # Compute solutions with the three classical schemes
-        hu, t = upw(h0, 0.995, dx, T1, flux, df, inflow, advancing_production, d)
-        print(t)
-        hu_r, tr = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
-        #hu2, t2 = upw(h0,0.995, dx, T1*10, flux, df, inflow, production, d)
-        #hu3, t3 = upw(h0,0.995, dx, T1*100, flux, df, inflow, production, d)
-        #hu4, t4 = upw(h0,0.995, dx, T1*1000, flux, df, inflow, production, d)
-        #hu5, t5 = upw(h0,0.995, dx, T1*10000, flux, df, inflow, production, d)
+        hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production, d)
+        #print(t)
+        #hu_r, tr = upw(hu, 0.995, dx, T5, flux, df, inflow, retreating_production, d)
+        hu2, t2 = upw(h0,0.995, dx, T2, flux, df, inflow, production, d)
+        hu3, t3 = upw(h0,0.995, dx, T3, flux, df, inflow, production, d)
+        hu4, t4 = upw(h0,0.995, dx, T4, flux, df, inflow, production, d)
+        hu5, t5 = upw(h0,0.995, dx, T5, flux, df, inflow, production, d)
+        hu6, t6 = upw(h0,0.995, dx, T6, flux, df, inflow, production, d)
+        #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6/H
+        hu1 += d
+        hu2 += d
+        hu3 += d
+        hu4 += d
+        hu5 += d
+        hu6 += d
         
-        G = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3 ,.8725)
-        G.generateLinearQ()
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = "Advancing") # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = "Retreating")
-        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
-        #plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3)
-        #plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3)
-        #plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3)
-        #plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3)
-        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
-        plt.legend()
+        plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(t1*100))) # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        #plt.plot(x[1:-1]*L, hu_r[1:-1]*H, '-', markersize = 3, label = "Retreating")
+        plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(t2*100)))
+        plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(t3*100)))
+        plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(t4*100)))
+        plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(t5*100)))
+        plt.plot(x[1:-1]*L, hu6[1:-1]*H, '-', markersize = 3, label = int(round(t6*100)))
+        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H+d[1:-1]*H, '-', markersize = 3, label = "Std S.")
 
-        plt.title("Upwind")
+        plt.plot(x[1:-1]*L, d[1:-1]*H, '-', markersize = 3, label = "d(x)")
+        plt.legend(loc = 1, fontsize = 7)
+
+        plt.title("Height profile of advancing glacier")
         # The following commented out section saves the plots
+        #plt.savefig("Advancing_glacier_sin.pdf")
         """
-        if T == 1:
-            plt.savefig("solution_classical_cont.pdf")
-        elif T == 0.5:
-            plt.savefig("solution_classical_discont.pdf")
-        
     
     elif method == 'god':
         # Coarser grid, need two fictitious nodes at each end for this scheme.
@@ -174,58 +178,63 @@ def h_solution(method, T1, T2):
             plt.savefig("solution_high_cont.pdf")
         """
 
+#Advancing:
+h_solution('upw', 2515,4716,9433,18867,31444,46000, advancing_production)
 
-#h_solution('upw', 22000,5500)
+
+#Retreating
+#h_solution('upw', 6289, 18867, 31444, 50311, 62888, 72500, retreating_production)
 
 
-def h_solution_11(method, T1, T2):
+def h_solution_11(T1):
     # Solutions on coarser grids
-    N  = 600
+    N  = 300
     dx = 1/N
     
     #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
     d = np.zeros(N+2)
     
     #Here we compute the maximum value of f'(u).
-    s = np.linspace(0,4,1001)
+    s = np.linspace(0,2,1001)
     #dfv = max(np.diff(flux(s,np.sin(np.linspace(-np.pi,np.pi,1001))*6))/np.diff(s))
     dfv = max(np.diff(shallowFlux(s,np.zeros(1001),dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
+
+    # Coarser grid
+    x  = np.arange(-0.5*dx,1+1.5*dx,dx)
+    #h0 = np.ones(N//3 + 1)
+    h0 = np.zeros(N//3 + 1)
+    h0 = np.append(h0,np.zeros(N//3*2 + 1))
+
+    dt = 0.495*dx/max(abs(df(h0)))
+    print(dt)
+    # Compute solutions with the three classical schemes
+    hu, a = siaflat(1, N, h0, dt, T1*dt, production, d)
+    print(sum(a))
+    #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
+    #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
+    #hu3 = upw(h0,0.995, dx, T1*100, shallowFlux, df, inflow, production, d)
+    #hu4 = upw(h0,0.995, dx, T1*1000, shallowFlux, df, inflow, production, d)
+    #hu5 = upw(h0,0.995, dx, T1*10000, shallowFlux, df, inflow, production, d)
     
     
-    if method == 'central':
-        # Coarser grid
-        x  = np.arange(-0.5*dx,1+1.5*dx,dx)
-        #h0 = np.ones(N//3 + 1)
-        h0 = np.zeros(N//3 + 1)
-        h0 = np.append(h0,np.zeros(N//3*2 + 1))
+    # Plot results
+    plt.figure()
+    plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3, label = "Advancing") # We dont want to plot fictitious nodes, thereby the command [1:-1].
+    #plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
+    #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
+    #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
+    #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
+    #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
+    #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
+    plt.legend()
 
-        dt = 0.495*dx/max(abs(df(h0)))
-        print(dt)
-        # Compute solutions with the three classical schemes
-        hu, a = siaflat(1, N, h0, dt,5000*dt, production, d)
-        print(sum(a))
-        #hu_r = upw(hu, 0.995, dx, T2, flux, df, inflow, retreating_production, d)
-        #hu2 = upw(h0,0.995, dx, T1*10, shallowFlux, df, inflow, production, d)
-        #hu3 = upw(h0,0.995, dx, T1*100, shallowFlux, df, inflow, production, d)
-        #hu4 = upw(h0,0.995, dx, T1*1000, shallowFlux, df, inflow, production, d)
-        #hu5 = upw(h0,0.995, dx, T1*10000, shallowFlux, df, inflow, production, d)
-
-        # Plot results
-        plt.figure()
-        plt.plot(x[1:-1]*L, hu[1:-1]*H, '-', markersize = 3) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        #plt.plot(x[1:-1], hu_r[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu2[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu3[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu4[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], hu5[1:-1], '-', markersize = 3)
-        #plt.plot(x[1:-1], d[1:-1], '-', markersize = 3)
-
-        plt.title("Central")
+    plt.title("Explicit scheme")
         
-#h_solution_11("central",1,0)
+#h_solution_11(6000)
 
-def film(T1,T2):
+
+def film(T1,T2):    
     # Solutions on coarser grids
     N  = 90
     dx = 1/N
@@ -280,4 +289,5 @@ def film(T1,T2):
     
 #    plt.show()
     
-film(6500,1700)
+film(22000,5500)
+
