@@ -237,7 +237,7 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(T3*100)))
     plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(T4*100)))
     if mov=="retreating":
-          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "R.Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
+          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "Real Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
     plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(T5*100)))
     plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.", color = "black")
 
@@ -251,10 +251,10 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
         plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
-h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
+#h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
+#h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
 
 def film(T1,T2):    
     # Solutions on coarser grids
@@ -341,3 +341,41 @@ def Plot_3D(T1,T2):
     z = hu1.transpose()
     ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='Blues')
     plt.show()
+    
+    
+def steady_state_comparison():  
+    # Solutions on coarser grids
+    N  = 150
+    dx = 1/N
+    
+    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    d = np.zeros(N+2)
+    
+    #Here we compute the maximum value of f'(u).
+    s = np.linspace(0,0.9,1001)
+    dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
+    df = lambda u: np.zeros(len(u)) + dfv
+    
+    
+    # Coarser grid
+    x  = np.arange(-0.5*dx,1+1.5*dx,dx)
+    h0 = np.zeros(N + 2)
+    dt = 0.495*dx*dx/max(abs(df(h0)))
+    print("dt: ", dt)
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
+    G.generateLinearQ()
+    
+    
+    # Compute solutions with the three classical schemes
+    hu1 = explicit_scheme(dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+    
+    # Plot results
+    plt.figure()
+    plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = "Expanded model")
+    plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Simplified model")
+    
+    
+    plt.legend(loc = 1, fontsize = 7)
+    plt.title("Comparison of steady state solutions of height profile of steep glacier", fontsize = 9)
+    plt.savefig("Steady_state_comparison.pdf")
+#steady_state_comparison()
