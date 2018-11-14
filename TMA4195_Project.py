@@ -289,12 +289,12 @@ def film(T1,T2):
     fig, ax = plt.subplots()
 #    ax.plot(xvalues, G.getHeight(x[1:-1])*H, color='tab:orange')
     
-    iter_per_frame = 1000
+    iter_per_frame = 100
 #    time_steps = 10
     
     line, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:blue')
     line2, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:orange')
-    fill = ax.fill_between(xvalues, 0, np.linspace(-6,H,N), color='tab:blue', interpolate = True)
+    fill = ax.fill_between(xvalues, 0, np.linspace(0,H,N), color='tab:blue', interpolate = True)
     antifill = ax.fill_between(xvalues, np.linspace(-6,H,N), H, color='white', interpolate = True)
     text = ax.text(0.8*L, 0.5*H, '')
     def animate(i):
@@ -329,7 +329,7 @@ def film(T1,T2):
         line2.set_ydata(np.ma.array(xvalues, mask=True))
         return [antifill, fill, line, line2, text]
     
-    ax.legend(['$h(x, t)$', '$h_0(x)$'], loc = 1)
+    ax.legend(['$h(x, t)$', '$h_0(x, q(t))$'], loc = 1)
     
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, iter_per_frame), init_func = init,interval = 1, blit=True)
     
