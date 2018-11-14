@@ -294,13 +294,13 @@ def film(T1,T2):
     
     line, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:blue')
     line2, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:orange')
+    fill = ax.fill_between(xvalues, 0, np.linspace(-6,H,N), color='tab:blue', interpolate = True)
+    antifill = ax.fill_between(xvalues, np.linspace(-6,H,N), H, color='white', interpolate = True)
     text = ax.text(0.8*L, 0.5*H, '')
     def animate(i):
         line.set_ydata(y1[i])
         
 #        Fill between and let yellow be on top 
-        
-        
         if i < T1:
             q_vector = advancing_production(np.ones(N), i)
             q_func = lambda z: np.interp(z, np.linspace(0, 1, N), q_vector)
@@ -313,28 +313,32 @@ def film(T1,T2):
             G.setQ(q_func)
             G.calculateHeight()
             line2.set_ydata(G.getHeight(x[1:-1])*H)
+            
+        fill = ax.fill_between(xvalues, 0, y1[i], color='tab:blue', interpolate = True)
+        antifill = ax.fill_between(xvalues, y1[i], 1.05*H, color='white', interpolate = True)
+        
         
 #        line2.set_ydata(
 #        ax.fill_between(xvalues, np.zeros(np.shape(y1[0])), y1[i], interpolate=True, facecolor='tab:blue')
 #        ax.fill_between(xvalues, G.getHeight(x[1:-1])*H, y1[i], interpolate=True, facecolor='white')
         text.set_text('T = {:.0f} years'.format(i*dt*100))
-        return [line, line2, text]
+        return [antifill, fill, line, line2, text]
 
     def init():
         line.set_ydata(np.ma.array(xvalues, mask=True))
         line2.set_ydata(np.ma.array(xvalues, mask=True))
-        return [line, line2, text]
+        return [antifill, fill, line, line2, text]
     
-    ax.legend(['$h_0(x)$','$h(x, t)$'], loc = 1)
+    ax.legend(['$h(x, t)$', '$h_0(x)$'], loc = 1)
     
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, iter_per_frame), init_func = init,interval = 1, blit=True)
     
-#    ax.ani.save('line.mp4', fps = 400, dpi = 300)
+    ax.ani.save('file.gif', fps = 60, writer = 'imagemagick')
 #    ax.ani.to_html5_video(embed_limit=None)
     
 #    plt.show()
     
-#film(22000,5500)
+film(37000,37000)
 
 
 
