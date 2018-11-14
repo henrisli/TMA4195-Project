@@ -6,8 +6,8 @@ def explicit_scheme2(dx,K,H0,dt,tf1,tf2,production1,production2,d,boundary, gamm
     b[0] = H[1:-1]
     t = 0.0
     for j in range(tf1):
-        if t+dt > tf1:
-            dt = tf1-t
+#        if t+dt > tf1:
+#            dt = tf1-t
         H = boundary(H)
         Hrt = 0.5*(H[2:] + H[1:-1])
         Hlt = 0.5*(H[1:-1] + H[:-2])
@@ -24,10 +24,10 @@ def explicit_scheme2(dx,K,H0,dt,tf1,tf2,production1,production2,d,boundary, gamm
         #maxD = max(maxD)
         t += dt
         b[j+1] = H[1:-1]
-    t = 0.0
+#    t = 0.0
     for k in range(tf2):
-        if t+dt > tf2:
-            dt = tf2-t
+#        if t+dt > tf2:
+#            dt = tf2-t
         H = boundary(H)
         Hrt = 0.5*(H[2:] + H[1:-1])
         Hlt = 0.5*(H[1:-1] + H[:-2])
@@ -39,9 +39,10 @@ def explicit_scheme2(dx,K,H0,dt,tf1,tf2,production1,production2,d,boundary, gamm
         Hb = H + d
         q_p = production2(H,j)
         H[1:-1] = H[1:-1] + mu_x*Drt*(gamma*(Hb[2:] - Hb[1:-1])-dx) - mu_x*Dlt*(gamma*(Hb[1:-1]-Hb[:-2])-dx)+ dt*q_p[1:-1]
+        if np.max(H) > 0.5: print(np.max(H))
         H[H<1e-06] = 0
         #maxD = [max(Dlt), max(Drt)]
         #maxD = max(maxD)
         t += dt
         b[(tf1+k+1)] = H[1:-1]
-    return H
+    return b

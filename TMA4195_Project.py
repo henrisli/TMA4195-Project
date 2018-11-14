@@ -8,6 +8,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 # Import schemes:
 from upw import upw
 from upw2 import upw2
+from explicit_scheme2 import explicit_scheme2
 #from god import god
 from explicit_scheme import explicit_scheme
 from steady_state import StationaryGlacier
@@ -271,8 +272,13 @@ def film(T1,T2):
     h0 = np.zeros(N//3+1)
     h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
-    plt.figure()
+#    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
+    d = np.zeros(N+2)
+    #dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+    hu = explicit_scheme2(dx,'',h0,dt,T1,T2,advancing_production,retreating_production,d,inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+#    plt.figure()
+    print(hu.shape)
+#    print(hu2.shape)
     
     
     tvalues = np.arange(200)
@@ -289,7 +295,7 @@ def film(T1,T2):
     fig, ax = plt.subplots()
 #    ax.plot(xvalues, G.getHeight(x[1:-1])*H, color='tab:orange')
     
-    iter_per_frame = 100
+    iter_per_frame = 1000
 #    time_steps = 10
     
     line, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:blue')
@@ -333,7 +339,7 @@ def film(T1,T2):
     
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, iter_per_frame), init_func = init,interval = 1, blit=True)
     
-    ax.ani.save('file.gif', fps = 60, writer = 'imagemagick')
+    ax.ani.save('file.gif', fps = 10, writer = 'imagemagick')
 #    ax.ani.to_html5_video(embed_limit=None)
     
 #    plt.show()
