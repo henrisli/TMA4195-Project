@@ -218,9 +218,9 @@ if __name__  == "__main__":
     plt.show()
     
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    G_linear = StationaryGlacier(50, .0, 2000, .5, 9.3E-25, 3, 1000, 9.81, 25.0, 1/3. ,.8752)
-    #G_linear.generateLinearQ()
-    G_linear.setQ(q_0)
+    G_linear = StationaryGlacier(50, .0, 6000, 2.0, 9.3E-25, 3, 1000, 9.81, 20.0, 1/3. ,2/3)
+    G_linear.generateLinearQ()
+#    G_linear.setQ(q_0)
     G_linear.plotQ(plotHandle = ax1)
     G_linear.calculateHeight()
     G_linear.plotGlacier(plotHandle = ax2)
