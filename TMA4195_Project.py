@@ -250,10 +250,10 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
         plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
-#h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
+h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
+#h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
 
 def film(T1,T2):    
     # Solutions on coarser grids

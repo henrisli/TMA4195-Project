@@ -1,6 +1,5 @@
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def upw(h0, cfl, dx, T, flux, df, boundary, production):
