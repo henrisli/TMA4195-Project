@@ -23,4 +23,5 @@ def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary, gamma, Gamma, m):
         maxD = max(maxD)
         t += dt
         j += 1
+    print(j)
     return H

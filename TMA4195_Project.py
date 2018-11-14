@@ -27,6 +27,7 @@ Theta = rho*g*H*np.sin(alpha)
 Theta_s = rho*g*H*np.sin(alpha_s)
 kappa = 2*H**2/(Q*L)*mu*Theta**m
 kappa_s = 2*H**2/(Q*L)*mu*Theta_s**m
+Gamma = kappa_s/(m+2)
 gamma = H/(L*np.tan(alpha_s))
 
 def flux(h, dx):
@@ -219,26 +220,26 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_s*180/np.pi, 1/3 ,2/3)
     G.generateLinearQ()
     if mov == "retreating":
-        h0 = explicit_scheme(dx,N,h0,dt,10,advancing_shallow_production,d,inflow)
+        h0 = explicit_scheme(dx,N,h0,dt,11,advancing_shallow_production,d,inflow, gamma, Gamma, m)
 
 
     # Compute solutions with the three classical schemes
-    hu1 = explicit_scheme(dx, N, h0, dt, T1, production, d, inflow)
-    hu2 = explicit_scheme(dx, N, h0, dt, T2, production, d, inflow)
-    hu3 = explicit_scheme(dx, N, h0, dt, T3, production, d, inflow)
-    hu4 = explicit_scheme(dx, N, h0, dt, T4, production, d, inflow)
-    hu5 = explicit_scheme(dx, N, h0, dt, T5, production, d, inflow)
+    hu1 = explicit_scheme(dx, N, h0, dt, T1, production, d, inflow, gamma, Gamma, m)
+    hu2 = explicit_scheme(dx, N, h0, dt, T2, production, d, inflow, gamma, Gamma, m)
+    hu3 = explicit_scheme(dx, N, h0, dt, T3, production, d, inflow, gamma, Gamma, m)
+    hu4 = explicit_scheme(dx, N, h0, dt, T4, production, d, inflow, gamma, Gamma, m)
+    hu5 = explicit_scheme(dx, N, h0, dt, T5, production, d, inflow, gamma, Gamma, m)
 
     # Plot results
     plt.figure()
-    if mov=="retreating":
-          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "R.Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
     plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(T1*100)))
     plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(T2*100)))
     plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(T3*100)))
     plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(T4*100)))
+    if mov=="retreating":
+          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "R.Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
     plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(T5*100)))
-    plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.")
+    plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.", color = "black")
 
     
     plt.legend(loc = 1, fontsize = 7)
@@ -253,7 +254,7 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
 h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-#h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
+h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
 
 def film(T1,T2):    
     # Solutions on coarser grids
