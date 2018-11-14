@@ -66,10 +66,10 @@ def retreating_production(h,k):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 - k//300:
+        if i < n/3 - k//590:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 - k//300))/(n/12) 
+            q[i] = 1-(i-(n/3 - k//590))/(n/12) 
             
         if h[i]<1e-16 and q[i]<1e-16:
             q[i] = 0
@@ -77,29 +77,30 @@ def retreating_production(h,k):
 
 def advancing_production(h,k):
     n = len(h) - 2
-    k -= 4201
-    if k//300>n/3:
-        k = 300*(n/3)
+    k -= 8261
+    if k//590>n/3:
+        k = 590*(n/3)
     q = np.zeros(n+2)
     for i in range(n+2):
-        if i < k//300:
+        if i < k//590:
             q[i] = 1
         else:
-            q[i] = 1 - (i - k//300)/(n/12)
+            q[i] = 1 - (i - k//590)/(n/12)
             
         if h[i]<1e-16 and q[i] < 1e-16:
             q[i] = 0
-    # Full production after 22201 iterations
+    # Full production after 43661 iterations or 409 years
     return q
+
 
 def retreating_shallow_production(h,k):
     n = len(h) - 2
     q = np.zeros(n + 2)
     for i in range(n + 2):
-        if i < n/3 - k//400:
+        if i < n/3 - k//670:
             q[i] = 1
         else:
-            q[i] = 1-(i-(n/3 - k//400))/(n/12) 
+            q[i] = 1-(i-(n/3 - k//670))/(n/12) 
             
         if h[i]<1e-16 and q[i]<1e-16:
             q[i] = 0
@@ -107,21 +108,20 @@ def retreating_shallow_production(h,k):
 
 def advancing_shallow_production(h,k):
     n = len(h) - 2
-    k -= 4801
-    if k//400>n/3:
-        k = 400*(n/3)
+    k -= 8041
+    if k//670>n/3:
+        k = 670*(n/3)
     q = np.zeros(n+2)
     for i in range(n+2):
-        if i < k//400:
+        if i < k//670:
             q[i] = 1
         else:
-            q[i] = 1 - (i - k//400)/(n/12)
+            q[i] = 1 - (i - k//670)/(n/12)
             
         if h[i]<1e-16 and q[i] < 1e-16:
             q[i] = 0
-    # Full production after 24801 iterations
+    # Full production after 41541 iterations or 412 years
     return q
-
 
 # Solution of equation for height of glacier, both with classical
 # and Godunov schemes..
@@ -156,22 +156,23 @@ def h_solution(method, T1, T2, T3, T4, T5, production, mov):
         
         # Plot results
         plt.figure()
-        plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(t1*100))) # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(t2*100)))
-        plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(t3*100)))
-        plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(t4*100)))
-        plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(t5*100)))
+        plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = str(round(T1*50)) + " years") # We dont want to plot fictitious nodes, thereby the command [1:-1].
+        plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = str(round(T2*50)) + " years")
+        plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = str(round(T3*50)) + " years")
+        plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = str(round(T4*50)) + " years")
+        plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = str(round(T5*50)) + " years")
         
-        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.")
+        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
 
         plt.legend(loc = 1, fontsize = 7)
-        
+        plt.xlabel("Length (m)")
+        plt.ylabel("Height (m)")
         if mov == "advancing":
             plt.title("Height profile of advancing glacier")
-            #plt.savefig("Advancing_glacier.pdf")
+            plt.savefig("Advancing_glacier.pdf")
         elif mov == "retreating":
             plt.title("Height profile of retreating glacier")
-            #plt.savefig("Retreating_glacier.pdf")
+            plt.savefig("Retreating_glacier.pdf")
         
         """
     
@@ -192,12 +193,12 @@ def h_solution(method, T1, T2, T3, T4, T5, production, mov):
         
         """
 #Advancing:
-#h_solution('upw', 1, 2, 3, 4.16, 5.16, advancing_production, "advancing")
-#h_solution('upw', 0.2, 0.4, 0.6, 0.8, 1.5, advancing_production, "advancing")
+#h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
 
 #Retreating
-#h_solution('upw', 1, 2, 3, 4.16, 6.65, retreating_production, "retreating")
-
+#h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
+plt.plot(np.arange(182)*6000/180, advancing_production(np.ones(182),10000000000))
+plt.plot(np.arange(182)*6000/180,np.zeros(182))
 
 def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     # Solutions on coarser grids
@@ -218,10 +219,8 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     h0 = np.zeros(N + 2)
     dt = 0.495*dx*dx/max(abs(df(h0)))
     print("dt: ", dt)
-    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_s*180/np.pi, 1/3 ,2/3)
-    G.generateLinearQ()
     if mov == "retreating":
-        h0 = explicit_scheme(dx,N,h0,dt,11,advancing_shallow_production,d,inflow, gamma, Gamma, m)
+        h0 = explicit_scheme(dx,N,h0,dt,12,advancing_shallow_production,d,inflow, gamma, Gamma, m)
 
 
     # Compute solutions with the three classical schemes
@@ -233,29 +232,31 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
 
     # Plot results
     plt.figure()
-    plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = int(round(T1*100)))
-    plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = int(round(T2*100)))
-    plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = int(round(T3*100)))
-    plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = int(round(T4*100)))
+    plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = str(round(T1*50)) + " years")
+    plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = str(round(T2*50)) + " years")
+    plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = str(round(T3*50)) + " years")
+    plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = str(round(T4*50)) + " years")
     if mov=="retreating":
-          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "Real Std.S.") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
-    plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = int(round(T5*100)))
-    plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Std S.", color = "black")
-
+          plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "0 years") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
+    plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = str(round(T5*50)) + " years")
+    plt.xlabel("Length (m)")
+    plt.ylabel("Height (m)")
     
     plt.legend(loc = 1, fontsize = 7)
     if mov=="advancing":
-        plt.title("Height profile of advancing low slope glacier")
+        plt.title("Height profile of advancing gentle slope glacier")
         plt.savefig("Advancing_glacier_gentle.pdf")
     elif mov=="retreating":
-        plt.title("Height profile of retreating low slope glacier")
+        plt.title("Height profile of retreating gentle slope glacier")
         plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
-#h_solution_11(1,2,3,5,10, advancing_shallow_production, "advancing")
+#h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-#h_solution_11(1,2,3,5,9.4, retreating_shallow_production, "retreating")
+#h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
+
+
 
 def film(T1,T2):    
     # Solutions on coarser grids
@@ -344,7 +345,7 @@ def film(T1,T2):
     
 #    plt.show()
     
-film(37000,37000)
+#film(37000,37000)
 
 
 
@@ -381,7 +382,7 @@ def Plot_3D(T1,T2):
     plt.show()
     
     
-def steady_state_comparison():  
+def steady_state_comparison(angle):  
     # Solutions on coarser grids
     N  = 150
     dx = 1/N
@@ -393,27 +394,33 @@ def steady_state_comparison():
     s = np.linspace(0,0.9,1001)
     dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
-    
+    alpha_u = alpha
+    if angle == "gentle":
+        alpha_u = alpha_s
     
     # Coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
     h0 = np.zeros(N + 2)
     dt = 0.495*dx*dx/max(abs(df(h0)))
     print("dt: ", dt)
-    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_u*180/np.pi, 1/3 ,2/3)
     G.generateLinearQ()
-    
+    Theta_u = rho*g*H*np.sin(alpha_u)
+    kappa_u = 2*H**2/(Q*L)*mu*Theta_u**m
+    Gamma = kappa_u/(m+2)
+    gamma = H/(L*np.tan(alpha_u))
     
     # Compute solutions with the three classical schemes
-    hu1 = explicit_scheme(dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+    hu1 = explicit_scheme(dx, N, h0, dt, 10, production, d, inflow, gamma, Gamma, m)
     
     # Plot results
     plt.figure()
     plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = "Expanded model")
     plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Simplified model")
-    
+    plt.xlabel("Length (m)")
+    plt.ylabel("Height (m)")
     
     plt.legend(loc = 1, fontsize = 7)
-    plt.title("Comparison of steady state solutions of height profile of steep glacier", fontsize = 9)
-    plt.savefig("Steady_state_comparison.pdf")
-#steady_state_comparison()
+    plt.title("Comparison of steady state solutions of height profile of " + angle + " glacier", fontsize = 9)
+    plt.savefig("Steady_state_comparison_" + angle + ".pdf")
+#steady_state_comparison("steep")
