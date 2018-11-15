@@ -11,6 +11,7 @@ from upw2 import upw2
 #from god import god
 from explicit_scheme import explicit_scheme
 from steady_state import StationaryGlacier
+from scipy import optimize
 
 # Height equation flux function
 H = 100
@@ -38,6 +39,8 @@ def shallowFlux(h, dx):
     h_x[1] = 0
     h_x[-1] = 0
     return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h,m+2)
+
+
 
 
 #from analytical import analytical
@@ -211,7 +214,7 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
 
-    
+
     # Coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
     h0 = np.zeros(N + 2)
@@ -243,13 +246,13 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     plt.legend(loc = 1, fontsize = 7)
     if mov=="advancing":
         plt.title("Height profile of advancing gentle slope glacier")
-        plt.savefig("Advancing_glacier_gentle.pdf")
+        #plt.savefig("Advancing_glacier_gentle.pdf")
     elif mov=="retreating":
         plt.title("Height profile of retreating gentle slope glacier")
-        plt.savefig("Retreating_glacier_gentle.pdf")
+        #plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
-#h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
+h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
 #h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
