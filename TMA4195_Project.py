@@ -2,7 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 
 # Import schemes:
@@ -11,7 +10,6 @@ from upw2 import upw2
 #from god import god
 from explicit_scheme import explicit_scheme
 from steady_state import StationaryGlacier
-from scipy import optimize
 
 # Height equation flux function
 H = 100
@@ -39,11 +37,6 @@ def shallowFlux(h, dx):
     h_x[1] = 0
     h_x[-1] = 0
     return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h,m+2)
-
-
-
-
-#from analytical import analytical
 
 # The following imports a function for the boundary conditions
 def inflow(h):
@@ -195,10 +188,10 @@ def h_solution(method, T1, T2, T3, T4, T5, production, mov):
         
         """
 #Advancing:
-#h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
+h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
 
 #Retreating
-#h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
+h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
 
 
 def h_solution_11(T1,T2,T3,T4,T5, production, mov):
@@ -246,16 +239,16 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     plt.legend(loc = 1, fontsize = 7)
     if mov=="advancing":
         plt.title("Height profile of advancing gentle slope glacier")
-        #plt.savefig("Advancing_glacier_gentle.pdf")
+        plt.savefig("Advancing_glacier_gentle.pdf")
     elif mov=="retreating":
         plt.title("Height profile of retreating gentle slope glacier")
-        #plt.savefig("Retreating_glacier_gentle.pdf")
+        plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
 h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-#h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
+h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
 
 
 
@@ -390,4 +383,5 @@ def steady_state_comparison(angle):
     plt.legend(loc = 1, fontsize = 7)
     plt.title("Comparison of steady state solutions of height profile of " + angle + " glacier", fontsize = 9)
     plt.savefig("Steady_state_comparison_" + angle + ".pdf")
-#steady_state_comparison("gentle")
+steady_state_comparison("gentle")
+steady_state_comparison("steep")
