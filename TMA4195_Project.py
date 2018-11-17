@@ -8,11 +8,6 @@ import matplotlib.animation as animation
 # Import schemes:
 from upw import upw
 from upw2 import upw2
-<<<<<<< HEAD
-=======
-from explicit_scheme2 import explicit_scheme2
-#from god import god
->>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
 from explicit_scheme import explicit_scheme
 from explicit_scheme2 import explicit_scheme2
 from steady_state import StationaryGlacier
@@ -158,11 +153,11 @@ def h_solution(T1, T2, T3, T4, T5, production, mov):
         h0 = G.getHeight(x)
     
     # Compute solutions for different times T1,T2,T3,T4,T5
-    hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production)
-    hu2, t2 = upw(h0, 0.995, dx, T2, flux, df, inflow, production)
-    hu3, t3 = upw(h0, 0.995, dx, T3, flux, df, inflow, production)
-    hu4, t4 = upw(h0, 0.995, dx, T4, flux, df, inflow, production)
-    hu5, t5 = upw(h0, 0.995, dx, T5, flux, df, inflow, production)
+    hu1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production)
+    hu2 = upw(h0, 0.995, dx, T2, flux, df, inflow, production)
+    hu3 = upw(h0, 0.995, dx, T3, flux, df, inflow, production)
+    hu4 = upw(h0, 0.995, dx, T4, flux, df, inflow, production)
+    hu5 = upw(h0, 0.995, dx, T5, flux, df, inflow, production)
     
     
     # Plot scaled results
@@ -257,31 +252,25 @@ h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
 h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
 
 
-
+# To make animations of steep glacier
 def film(T1,T2):    
     # Parameters for coarser grid
     N  = 180
     dx = 1/N
-<<<<<<< HEAD
     
     #Here we compute the maximum value of f'(h) to use in CFL-condition.
-=======
->>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
     s = np.linspace(0,2,1001)
-
     dfv = max(np.diff(flux(s,dx))/np.diff(s))    
     df = lambda u: np.zeros(len(u)) + dfv
-<<<<<<< HEAD
     
     # Compute time step dt to satisfy CFL-condition
-=======
-        
->>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
     dt = 0.995 * dx / dfv
-        
-    h0 = np.zeros(N//3+1)
-    h0 = np.append(h0,np.zeros(N//3*2+1))
+    
+    # Initial condition
+    h0 = np.zeros(N+2)
+    # Create coarser grid
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
+    # Solve equation for advancing and retreating glacier with upwind
     hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
     
     tvalues = np.arange(200)
@@ -354,35 +343,32 @@ def film(T1,T2):
     
 #film(60000,60000)
     
+# To make animations of gentle slope glacier
 def shallow_film(T1,T2):    
-    # Solutions on coarser grids
+    # Parameters for coarser grid
     N  = 180
     dx = 1/N
     
+    #Here we compute the maximum value of f'(h) to use in CFL-condition.
     s = np.linspace(0,2,1001)
     s_shallow = np.linspace(0, 0.9, 1001)
     dfv = max(np.diff(flux(s,dx))/np.diff(s))
     dfv_shallow = max(np.diff(shallowFlux(s_shallow,dx))/np.diff(s_shallow))
     
-    df = lambda u: np.zeros(len(u)) + dfv
-    
+    # Compute time step dt to satisfy CFL condition
     dt = 0.995 * dx / dfv
     dt_shallow =  0.495 * dx**2 / dfv_shallow
     
     alpha = alpha_s
     kappa = kappa_s
     
-    #h0 = np.ones(N//3+1)*H
-    h0 = np.zeros(N//3+1)
-    h0 = np.append(h0,np.zeros(N//3*2+1))
+    # Initial condition for h
+    h0 = np.zeros(N+2)
+    # Coarser grid
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-#    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
     d = np.zeros(N+2)
-    #dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+    # Solve equation for advancing and retreating glacier with upwind
     hu = explicit_scheme2(dx,'',h0,dt_shallow,T1,T2,advancing_production,retreating_production,d,inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
-#    plt.figure()
-    print(hu.shape)
-#    print(hu2.shape)
     
     
     tvalues = np.arange(200)
@@ -434,19 +420,19 @@ def shallow_film(T1,T2):
     
 #    plt.show()
     
-shallow_film(100000, 75000)
+#shallow_film(100000, 75000)
 
     
-    
+# Compare analytical steady state with computed steady state from expanded model
 def steady_state_comparison(angle):  
-    # Solutions on coarser grids
+    # Parameters for coarser grid
     N  = 150
     dx = 1/N
     
-    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    # Ground level d(x) assumed to be zero
     d = np.zeros(N+2)
     
-    #Here we compute the maximum value of f'(u).
+    #Here we compute the maximum value of f'(h) to satisfy CFL condition.
     s = np.linspace(0,2,1001)
     dfv = max(np.diff(flux(s,dx))/np.diff(s))
     if angle == "gentle":
@@ -456,13 +442,15 @@ def steady_state_comparison(angle):
     if angle == "gentle":
         alpha_u = alpha_s
     
-    # Coarser grid
+    # Create coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
+    # Initial condition
     h0 = np.zeros(N + 2)
+    # Time step
     dt = 0.995*dx/max(abs(df(h0)))
     if angle == "gentle":
         dt = 0.495*dx*dx/max(abs(df(h0)))
-    print("dt: ", dt)
+    # Compute steady state solution
     G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_u*180/np.pi, 1/3 ,2/3)
     G.generateLinearQ()
     Theta_u = rho*g*H*np.sin(alpha_u)
@@ -470,13 +458,15 @@ def steady_state_comparison(angle):
     Gamma = kappa_u/(m+2)
     gamma = H/(L*np.tan(alpha_u))
     
-    # Compute solutions with the three classical schemes
+    # Compute solutions with the explicit scheme
     hu1 = explicit_scheme(dx, N, h0, dt, 18, production, d, inflow, gamma, Gamma, m)
     
-    # Plot results
+    # Plot scaled results
     plt.figure()
     plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = "Expanded model")
     plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Simplified model")
+    
+    # Add labels, legend, title and save plot
     plt.xlabel("Length (m)")
     plt.ylabel("Height (m)")
     

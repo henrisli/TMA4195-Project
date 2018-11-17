@@ -18,4 +18,4 @@ def upw(h0, cfl, dx, T, flux, df, boundary, production):
         h[i] = h[i] - dt/dx*(f[i]-f[i-1]) + dt*q[i]
         dt = cfl*dx/max(abs(df(h)))
         k +=1
-    return h,t
+    return h

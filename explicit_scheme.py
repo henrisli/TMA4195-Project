@@ -21,5 +21,4 @@ def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary, gamma, Gamma, m):
         H[H<1e-06] = 0
         t += dt
         j += 1
-    print(j)
     return H
