@@ -127,8 +127,9 @@ class StationaryGlacier:
             v = -(1 - ((1 - x[i,1] / h_approx(x[i,0]))**(self.M)))/h_approx(x[i,0])*(self.fun_q(x[i,0]))
             x[i+1, 0] = x[i,0] + u * dt
             x[i+1, 1] = x[i,1] + v * dt
+#        x = x[::500,]
         plt.text(x[-1, 0]*self.L, x[-1, 1]*self.H, "T={:.1f} yr".format(T_final*self.T/(24*365*3600)))
-        plt.plot(x[:, 0]*self.L, x[:, 1]*self.H)
+        plt.plot(x[:, 0]*self.L, x[:, 1]*self.H, color='tab:green')
         
     def getHeight(self, x):
         """Returns the height of the glacier at unscaled location x"""
@@ -163,7 +164,9 @@ class StationaryGlacier:
 #        print(np.max(self.u)*(self.L * self.Q / self.H))
         
         speed = (self.L * self.Q / self.H)**2*self.u**2 + (self.Q)**2*self.v**2
-        print(self.xx.shape)
+#        print(self.xx.shape)
+#        colors = np.matrix([[0., 0., speedi] for speedi in speed])
+#        print(colors.shape)
         
 #        JOBBE VIDERE HER FOR Å FÅ ET FARGEPLOTT
 #        SÅ KJØRE NYE TING MED RHO = 910
@@ -176,8 +179,8 @@ class StationaryGlacier:
         if plotFlow:
 #            A = plt.contourf(self.xx*self.L, self.zz*self.H, speed, cmap="plasma", alpha=0.2)
 #            plt.colorbar()
-            plotHandle.quiver((self.xx)*self.L, (self.zz)*self.H, self.u*(self.L * self.Q / self.H), self.v*self.Q,
-                              angles = 'xy')
+            plotHandle.quiver((self.xx)*self.L, (self.zz)*self.H, self.u*(self.L * self.Q / self.H), self.v*self.Q, speed,
+                              angles = 'xy', pivot = 'middle', scale = 1E-4, cmap = 'inferno_r')
 #            plotHandle.colorbar(A)
 
 
