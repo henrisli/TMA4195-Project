@@ -1,4 +1,5 @@
 
+# Import numpy and matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -7,12 +8,16 @@ import matplotlib.animation as animation
 # Import schemes:
 from upw import upw
 from upw2 import upw2
+<<<<<<< HEAD
+=======
 from explicit_scheme2 import explicit_scheme2
 #from god import god
+>>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
 from explicit_scheme import explicit_scheme
+from explicit_scheme2 import explicit_scheme2
 from steady_state import StationaryGlacier
 
-# Height equation flux function
+# First we define some constants
 H = 100
 H0 = 0.5
 L = 6000
@@ -21,7 +26,9 @@ mu = 9.3e-25
 m = 3
 rho = 1000
 g = 9.81
+# Steep slope
 alpha = 20*np.pi/180
+# Gentle slope
 alpha_s = 3*np.pi/180
 Theta = rho*g*H*np.sin(alpha)
 Theta_s = rho*g*H*np.sin(alpha_s)
@@ -30,21 +37,26 @@ kappa_s = 2*H**2/(Q*L)*mu*Theta_s**m
 Gamma = kappa_s/(m+2)
 gamma = H/(L*np.tan(alpha_s))
 
+# Flux function for steep glacier
 def flux(h, dx):
     return kappa*np.power(h,m+2)/(m+2)
 
+# Flux function for gentle slope glacier
 def shallowFlux(h, dx):
     h_x = np.append(0,np.diff(h))/dx
     h_x[1] = 0
     h_x[-1] = 0
     return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h,m+2)
 
-# The following imports a function for the boundary conditions
+# The following implements a function for the boundary condition h(0,t) = H0
 def inflow(h):
     h[0] = H0
     return h
 
-# The following computes the production q, given a height profile h
+# The following computes the production q
+# given a height profile h, for steep and gentle (shallow) slope
+
+# Constant production with x_s = 1/3 and x_f = 2/3
 def production(h,*args):
     n = len(h) - 2
     q = np.zeros(n + 2)
@@ -119,112 +131,104 @@ def advancing_shallow_production(h,k):
     # Full production after 41541 iterations or 412 years
     return q
 
-# Solution of equation for height of glacier, both with classical
-# and Godunov schemes..
-def h_solution(method, T1, T2, T3, T4, T5, production, mov):
-    # Solutions on coarser grids
+# Solution of equation for height of glacier using an upwind scheme
+def h_solution(T1, T2, T3, T4, T5, production, mov):
+    # Parameters for coarser grid
     N  = 180
     dx = 1/N
     
-    #Here we compute the maximum value of f'(u).
+    #Here we compute the maximum value of f'(h) to use in CFL-condition
     s = np.linspace(0,2,1001)
     dfv = max(np.diff(flux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
     
     
-    if method == 'upw':
-        # Coarser grid
-        x  = np.arange(-0.5*dx,1+1.5*dx,dx)
-        G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
-        G.generateLinearQ()
-        if mov == "advancing":
-            h0 = np.zeros(N+2)
-        elif mov == "retreating":
-            h0 = G.getHeight(x)
-        
-        # Compute solutions with the three classical schemes
-        hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production)
-        hu2, t2 = upw(h0,0.995, dx, T2, flux, df, inflow, production)
-        hu3, t3 = upw(h0,0.995, dx, T3, flux, df, inflow, production)
-        hu4, t4 = upw(h0,0.995, dx, T4, flux, df, inflow, production)
-        hu5, t5 = upw(h0,0.995, dx, T5, flux, df, inflow, production)
-        
-        
-        # Plot results
-        plt.figure()
-        plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = str(round(T1*50)) + " years") # We dont want to plot fictitious nodes, thereby the command [1:-1].
-        plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = str(round(T2*50)) + " years")
-        plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = str(round(T3*50)) + " years")
-        plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = str(round(T4*50)) + " years")
-        plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = str(round(T5*50)) + " years")
-        
-        plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
-
-        plt.legend(loc = 1, fontsize = 7)
-        plt.xlabel("Length (m)")
-        plt.ylabel("Height (m)")
-        if mov == "advancing":
-            plt.title("Height profile of advancing glacier")
-            plt.savefig("Advancing_glacier.pdf")
-        elif mov == "retreating":
-            plt.title("Height profile of retreating glacier")
-            plt.savefig("Retreating_glacier.pdf")
-        
-        """
+    # Create coarser grid
+    x  = np.arange(-0.5*dx,1+1.5*dx,dx)
+    # Analytical Steady state solution
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
+    G.generateLinearQ()
     
-    elif method == 'god':
-        # Coarser grid, need two fictitious nodes at each end for this scheme.
-        xh = np.arange(-1.5*dx, L + 2.5*dx, dx)
-        #h0 = np.ones(N//3 + 2)*H
-        h0 = np.zeros(N//3 + 2)*H
-        h0 = np.append(h0,np.zeros(N//3*2 + 2))
-        
-        ug, phi, t = god(h0, 0.495, dx, T1, flux, df, inflow, production,d)
-        print(t)
-        #Plot results
-        plt.figure()
-        plt.plot(xh[2:-2], ug[2:-2], '-', markersize = 3)
-        plt.title("Godunov")
-        # The following commented out section saves the plots
-        
-        """
+    # Initial condition h(x,0) = h0(x)
+    # Start with h0(x) = 0 for advancing glacier
+    if mov == "advancing":
+        h0 = np.zeros(N+2)
+    # Start with steady state solution for h0(x) for retreating glacier
+    elif mov == "retreating":
+        h0 = G.getHeight(x)
+    
+    # Compute solutions for different times T1,T2,T3,T4,T5
+    hu1, t1 = upw(h0, 0.995, dx, T1, flux, df, inflow, production)
+    hu2, t2 = upw(h0, 0.995, dx, T2, flux, df, inflow, production)
+    hu3, t3 = upw(h0, 0.995, dx, T3, flux, df, inflow, production)
+    hu4, t4 = upw(h0, 0.995, dx, T4, flux, df, inflow, production)
+    hu5, t5 = upw(h0, 0.995, dx, T5, flux, df, inflow, production)
+    
+    
+    # Plot scaled results
+    plt.figure()
+    plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = str(round(T1*50)) + " years") # We dont want to plot fictitious nodes, thereby the command [1:-1].
+    plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = str(round(T2*50)) + " years")
+    plt.plot(x[1:-1]*L, hu3[1:-1]*H, '-', markersize = 3, label = str(round(T3*50)) + " years")
+    plt.plot(x[1:-1]*L, hu4[1:-1]*H, '-', markersize = 3, label = str(round(T4*50)) + " years")
+    plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = str(round(T5*50)) + " years")
+    
+    plt.plot(x[1:-1]*L, G.getHeight(x[1:-1])*H, '-', markersize = 3, label = "Steady State")
+    
+    # To make the plots "nice" and save them:
+    plt.legend(loc = 1, fontsize = 7)
+    plt.xlabel("Length (m)")
+    plt.ylabel("Height (m)")
+    if mov == "advancing":
+        plt.title("Height profile of advancing glacier")
+        plt.savefig("Advancing_glacier.pdf")
+    elif mov == "retreating":
+        plt.title("Height profile of retreating glacier")
+        plt.savefig("Retreating_glacier.pdf")
+    
+
 #Advancing:
-h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
+h_solution(2, 4, 6, 8.18, 10, advancing_production, "advancing")
 
 #Retreating
-h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
+h_solution(2, 4, 6, 8.18, 13, retreating_production, "retreating")
 
 def h_solution_11(T1,T2,T3,T4,T5, production, mov):
-    # Solutions on coarser grids
+    # Parameters for coarser grid
     N  = 150
     dx = 1/N
     
-    #d = np.sin(np.linspace(-np.pi,np.pi,N+2))*6
+    # Height of the bedrock d(x). Assume it to be zero, because it can easily
+    # be added on in the end.
     d = np.zeros(N+2)
     
-    #Here we compute the maximum value of f'(u).
+    #Here we compute the maximum value of f'(h) to use in CFL-condition.
     s = np.linspace(0,0.9,1001)
     dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
 
-
-    # Coarser grid
+    # Create coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
+    
+    # Initial condition h(x,0) = h0(x)
+    # Start with h0(x) = 0 for advancing glacier
     h0 = np.zeros(N + 2)
+    
+    # Compute time step dt to satisfy CFL-condition
     dt = 0.495*dx*dx/max(abs(df(h0)))
-    print("dt: ", dt)
+    
+    # Start with steady state solution for h0(x) for retreating glacier
     if mov == "retreating":
         h0 = explicit_scheme(dx,N,h0,dt,12,advancing_shallow_production,d,inflow, gamma, Gamma, m)
-
-
-    # Compute solutions with the three classical schemes
+        
+    # Compute solutions for different times T1,T2,T3,T4,T5
     hu1 = explicit_scheme(dx, N, h0, dt, T1, production, d, inflow, gamma, Gamma, m)
     hu2 = explicit_scheme(dx, N, h0, dt, T2, production, d, inflow, gamma, Gamma, m)
     hu3 = explicit_scheme(dx, N, h0, dt, T3, production, d, inflow, gamma, Gamma, m)
     hu4 = explicit_scheme(dx, N, h0, dt, T4, production, d, inflow, gamma, Gamma, m)
     hu5 = explicit_scheme(dx, N, h0, dt, T5, production, d, inflow, gamma, Gamma, m)
 
-    # Plot results
+    # Plot scaled results
     plt.figure()
     plt.plot(x[1:-1]*L, hu1[1:-1]*H, '-', markersize = 3, label = str(round(T1*50)) + " years")
     plt.plot(x[1:-1]*L, hu2[1:-1]*H, '-', markersize = 3, label = str(round(T2*50)) + " years")
@@ -233,6 +237,8 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     if mov=="retreating":
           plt.plot(x[1:-1]*L, h0[1:-1]*H, '-', markersize = 3, label = "0 years") # We dont want to plot fictitious nodes, thereby the command [1:-1].  
     plt.plot(x[1:-1]*L, hu5[1:-1]*H, '-', markersize = 3, label = str(round(T5*50)) + " years")
+    
+    # Add legend and title and save it
     plt.xlabel("Length (m)")
     plt.ylabel("Height (m)")
     
@@ -253,14 +259,24 @@ h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
 
 
 def film(T1,T2):    
-    # Solutions on coarser grids
+    # Parameters for coarser grid
     N  = 180
     dx = 1/N
+<<<<<<< HEAD
+    
+    #Here we compute the maximum value of f'(h) to use in CFL-condition.
+=======
+>>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
     s = np.linspace(0,2,1001)
 
     dfv = max(np.diff(flux(s,dx))/np.diff(s))    
     df = lambda u: np.zeros(len(u)) + dfv
+<<<<<<< HEAD
+    
+    # Compute time step dt to satisfy CFL-condition
+=======
         
+>>>>>>> ae4b01adbf2fe6faf8fa32ca7a5adc2d371df306
     dt = 0.995 * dx / dfv
         
     h0 = np.zeros(N//3+1)
