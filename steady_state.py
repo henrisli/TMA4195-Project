@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class StationaryGlacier:
-    """Exceptions are documented in the same way as classes.
+    """Compute a stationary glacier for a given set of constants. 
 
     Args:
         H (float): Scale of height
@@ -19,7 +19,8 @@ class StationaryGlacier:
         m (float):  Glacier modelling parameter m
         density (float): Density of modelled fluid
         angle (float): Slope of glacier in degrees
-        x_s (float): Start
+        x_s (float): Start, required to use setQ(...)
+        x_f (float): End, required to use setQ(...)
     """
     
     def __init__(self, heightScale, heightStart, lengthScale, downpourYear, 
