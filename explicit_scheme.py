@@ -19,8 +19,6 @@ def explicit_scheme(dx,K,H0,dt,tf,production,d,boundary, gamma, Gamma, m):
         q_p = production(H,j)
         H[1:-1] = H[1:-1] + mu_x*Drt*(gamma*(Hb[2:] - Hb[1:-1])-dx) - mu_x*Dlt*(gamma*(Hb[1:-1]-Hb[:-2])-dx)+ dt*q_p[1:-1]
         H[H<1e-06] = 0
-        maxD = [max(Dlt), max(Drt)]
-        maxD = max(maxD)
         t += dt
         j += 1
     print(j)

@@ -2,7 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 
 # Import schemes:
@@ -39,9 +38,6 @@ def shallowFlux(h, dx):
     h_x[1] = 0
     h_x[-1] = 0
     return kappa_s/(m+2)*np.power(np.abs(1-gamma*h_x),m-1)*(1-gamma*h_x)*np.power(h,m+2)
-
-
-#from analytical import analytical
 
 # The following imports a function for the boundary conditions
 def inflow(h):
@@ -193,12 +189,10 @@ def h_solution(method, T1, T2, T3, T4, T5, production, mov):
         
         """
 #Advancing:
-#h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
+h_solution('upw', 2, 4, 6, 8.18, 10, advancing_production, "advancing")
 
 #Retreating
-#h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
-#plt.plot(np.arange(182)*6000/180, advancing_production(np.ones(182),10000000000))
-#plt.plot(np.arange(182)*6000/180,np.zeros(182))
+h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
 
 def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     # Solutions on coarser grids
@@ -213,7 +207,7 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
     df = lambda u: np.zeros(len(u)) + dfv
 
-    
+
     # Coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
     h0 = np.zeros(N + 2)
@@ -251,10 +245,10 @@ def h_solution_11(T1,T2,T3,T4,T5, production, mov):
         plt.savefig("Retreating_glacier_gentle.pdf")
         
 #Advancing glacier:
-#h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
+h_solution_11(2,4,6,8.24,12, advancing_shallow_production, "advancing")
 
 #Retreating glacier:
-#h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
+h_solution_11(2,4,6,8.24,16, retreating_shallow_production, "retreating")
 
 
 
@@ -426,39 +420,6 @@ def shallow_film(T1,T2):
     
 shallow_film(100000, 75000)
 
-
-
-def Plot_3D(T1,T2):    
-    # Solutions on coarser grids
-    N  = 180
-    dx = 1/N
-    
-    s = np.linspace(0,2,1001)
-    dfv = max(np.diff(flux(s,dx))/np.diff(s))
-    df = lambda u: np.zeros(len(u)) + dfv
-    
-    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*180/np.pi, 1/3 ,2/3)
-    G.generateLinearQ()
-
-    
-    #h0 = np.ones(N//3+1)*H
-    h0 = np.zeros(N//3+1)
-    h0 = np.append(h0,np.zeros(N//3*2+1))
-    x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-    hu1 = upw2(h0,0.995, dx, T1, 0, flux, df, inflow, advancing_production, retreating_production)*H
-    #hu2 = upw2(G.getHeight(x),0.995, dx, 0, T2, flux, df, inflow, advancing_production, retreating_production)
-    
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    #x = np.arange(N+2)*dx*L
-    #y = np.arange(T1)
-    x = np.arange(T1+1)
-    y = np.arange(N)
-    x, y = np.meshgrid(x, y)
-    #z = np.array( [ np.sin( 1e-3 * t * np.arange(100)) for t in x ] )
-    z = hu1.transpose()
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap='Blues')
-    plt.show()
     
     
 def steady_state_comparison(angle):  
@@ -470,8 +431,10 @@ def steady_state_comparison(angle):
     d = np.zeros(N+2)
     
     #Here we compute the maximum value of f'(u).
-    s = np.linspace(0,0.9,1001)
-    dfv = max(np.diff(shallowFlux(s,dx))/np.diff(s))
+    s = np.linspace(0,2,1001)
+    dfv = max(np.diff(flux(s,dx))/np.diff(s))
+    if angle == "gentle":
+        dfv = max(np.diff(shallowFlux(np.linspace(0,0.9,1001),dx))/np.diff(np.linspace(0,0.9,1001)))
     df = lambda u: np.zeros(len(u)) + dfv
     alpha_u = alpha
     if angle == "gentle":
@@ -480,7 +443,9 @@ def steady_state_comparison(angle):
     # Coarser grid
     x  = np.arange(-0.5*dx,1+1.5*dx,dx)
     h0 = np.zeros(N + 2)
-    dt = 0.495*dx*dx/max(abs(df(h0)))
+    dt = 0.995*dx/max(abs(df(h0)))
+    if angle == "gentle":
+        dt = 0.495*dx*dx/max(abs(df(h0)))
     print("dt: ", dt)
     G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha_u*180/np.pi, 1/3 ,2/3)
     G.generateLinearQ()
@@ -490,7 +455,7 @@ def steady_state_comparison(angle):
     gamma = H/(L*np.tan(alpha_u))
     
     # Compute solutions with the three classical schemes
-    hu1 = explicit_scheme(dx, N, h0, dt, 10, production, d, inflow, gamma, Gamma, m)
+    hu1 = explicit_scheme(dx, N, h0, dt, 18, production, d, inflow, gamma, Gamma, m)
     
     # Plot results
     plt.figure()
@@ -502,4 +467,5 @@ def steady_state_comparison(angle):
     plt.legend(loc = 1, fontsize = 7)
     plt.title("Comparison of steady state solutions of height profile of " + angle + " glacier", fontsize = 9)
     plt.savefig("Steady_state_comparison_" + angle + ".pdf")
-#steady_state_comparison("steep")
+steady_state_comparison("gentle")
+steady_state_comparison("steep")
