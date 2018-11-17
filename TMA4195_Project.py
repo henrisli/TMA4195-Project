@@ -197,8 +197,8 @@ def h_solution(method, T1, T2, T3, T4, T5, production, mov):
 
 #Retreating
 #h_solution('upw', 2, 4, 6, 8.18, 13, retreating_production, "retreating")
-plt.plot(np.arange(182)*6000/180, advancing_production(np.ones(182),10000000000))
-plt.plot(np.arange(182)*6000/180,np.zeros(182))
+#plt.plot(np.arange(182)*6000/180, advancing_production(np.ones(182),10000000000))
+#plt.plot(np.arange(182)*6000/180,np.zeros(182))
 
 def h_solution_11(T1,T2,T3,T4,T5, production, mov):
     # Solutions on coarser grids
@@ -262,25 +262,17 @@ def film(T1,T2):
     # Solutions on coarser grids
     N  = 180
     dx = 1/N
-    
     s = np.linspace(0,2,1001)
-    dfv = max(np.diff(flux(s,dx))/np.diff(s))
+
+    dfv = max(np.diff(flux(s,dx))/np.diff(s))    
     df = lambda u: np.zeros(len(u)) + dfv
-    
+        
     dt = 0.995 * dx / dfv
-    
-    #h0 = np.ones(N//3+1)*H
+        
     h0 = np.zeros(N//3+1)
     h0 = np.append(h0,np.zeros(N//3*2+1))
     x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
-#    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
-    d = np.zeros(N+2)
-    #dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
-    hu = explicit_scheme2(dx,'',h0,dt,T1,T2,advancing_production,retreating_production,d,inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
-#    plt.figure()
-    print(hu.shape)
-#    print(hu2.shape)
-    
+    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
     
     tvalues = np.arange(200)
     fig = plt.figure()
@@ -296,7 +288,10 @@ def film(T1,T2):
     fig, ax = plt.subplots()
 #    ax.plot(xvalues, G.getHeight(x[1:-1])*H, color='tab:orange')
     
-    iter_per_frame = 1000
+    ax.set_xlabel('Length (m)')
+    ax.set_ylabel('Height (m)')
+    
+    iter_per_frame = 500
 #    time_steps = 10
     
     line, = ax.plot(xvalues, np.linspace(-6,H,N), color='tab:blue')
@@ -305,6 +300,7 @@ def film(T1,T2):
     antifill = ax.fill_between(xvalues, np.linspace(-6,H,N), H, color='white', interpolate = True)
     text = ax.text(0.8*L, 0.5*H, '')
     def animate(i):
+        print(i)
         line.set_ydata(y1[i])
         
 #        Fill between and let yellow be on top 
@@ -328,7 +324,7 @@ def film(T1,T2):
 #        line2.set_ydata(
 #        ax.fill_between(xvalues, np.zeros(np.shape(y1[0])), y1[i], interpolate=True, facecolor='tab:blue')
 #        ax.fill_between(xvalues, G.getHeight(x[1:-1])*H, y1[i], interpolate=True, facecolor='white')
-        text.set_text('T = {:.0f} years'.format(i*dt*100))
+        text.set_text('T = {:.0f} years'.format(i*dt*50))
         return [antifill, fill, line, line2, text]
 
     def init():
@@ -340,12 +336,95 @@ def film(T1,T2):
     
     ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, iter_per_frame), init_func = init,interval = 1, blit=True)
     
-    ax.ani.save('file.gif', fps = 10, writer = 'imagemagick')
+    ax.ani.save('file.mp4', fps = 30, writer = 'imagemagick')
 #    ax.ani.to_html5_video(embed_limit=None)
     
 #    plt.show()
     
-#film(37000,37000)
+    
+#film(60000,60000)
+    
+def shallow_film(T1,T2):    
+    # Solutions on coarser grids
+    N  = 180
+    dx = 1/N
+    
+    s = np.linspace(0,2,1001)
+    s_shallow = np.linspace(0, 0.9, 1001)
+    dfv = max(np.diff(flux(s,dx))/np.diff(s))
+    dfv_shallow = max(np.diff(shallowFlux(s_shallow,dx))/np.diff(s_shallow))
+    
+    df = lambda u: np.zeros(len(u)) + dfv
+    
+    dt = 0.995 * dx / dfv
+    dt_shallow =  0.495 * dx**2 / dfv_shallow
+    
+    alpha = alpha_s
+    kappa = kappa_s
+    
+    #h0 = np.ones(N//3+1)*H
+    h0 = np.zeros(N//3+1)
+    h0 = np.append(h0,np.zeros(N//3*2+1))
+    x = np.arange(-0.5*dx, 1 + 1.5*dx,dx)
+#    hu = upw2(h0,0.995, dx, T1, T2, flux, df, inflow, advancing_production, retreating_production)
+    d = np.zeros(N+2)
+    #dx, N, h0, dt, 5.5, production, d, inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+    hu = explicit_scheme2(dx,'',h0,dt_shallow,T1,T2,advancing_production,retreating_production,d,inflow, H/(L*np.tan(alpha)), kappa/(m+2), m)
+#    plt.figure()
+    print(hu.shape)
+#    print(hu2.shape)
+    
+    
+    tvalues = np.arange(200)
+    fig = plt.figure()
+    xvalues = x[1:-1]*L
+    xg = xvalues
+    yg = tvalues
+    xg, yg = np.meshgrid(xg, yg)
+    y1 = hu*H
+    
+    G = StationaryGlacier(H, H0, L, Q*(365*24*3600), mu, m, rho, g, alpha*(180/np.pi), 1/3 ,2/3)
+    G.generateLinearQ()
+    
+    fig, ax = plt.subplots()
+#    ax.plot(xvalues, G.getHeight(x[1:-1])*H, color='tab:orange')
+    
+    iter_per_frame = 1000
+#    time_steps = 10
+    
+    ax.set_xlabel('Length (m)')
+    ax.set_ylabel('Height (m)')
+    
+    ymax = np.max(y1)
+    print(ymax)
+    line, = ax.plot(xvalues, np.linspace(-6,ymax,N), color='tab:blue')
+    fill = ax.fill_between(xvalues, 0, np.linspace(0,H,N), color='tab:blue', interpolate = True)
+    antifill = ax.fill_between(xvalues, np.linspace(-6,H,N), H, color='white', interpolate = True)
+    text = ax.text(0.8*L, 0.5*H, '')
+    def animate(i):
+#        print(i)
+        line.set_ydata(y1[i])
+        
+        fill = ax.fill_between(xvalues, 0, y1[i], color='tab:blue', interpolate = True)
+        antifill = ax.fill_between(xvalues, y1[i], ymax, color='white', interpolate = True)
+        
+        text.set_text('T = {:.0f} years'.format(i*dt*50))
+        return [antifill, fill, line, text]
+
+    def init():
+        line.set_ydata(np.ma.array(xvalues, mask=True))
+        return [antifill, fill, line, text]
+    
+    ax.legend(['$h(x, t)$'], loc = 1)
+    
+    ax.ani = animation.FuncAnimation(fig, animate, np.arange(1, T1+T2+1, iter_per_frame), init_func = init,interval = 1, blit=True)
+    
+    ax.ani.save('shallow_file.mp4', fps = 30, writer = 'imagemagick')
+#    ax.ani.to_html5_video(embed_limit=None)
+    
+#    plt.show()
+    
+shallow_film(100000, 75000)
 
 
 

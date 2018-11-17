@@ -37,7 +37,7 @@ def explicit_scheme2(dx,K,H0,dt,tf1,tf2,production1,production2,d,boundary, gamm
         Hb = H + d
         q_p = production2(H,k)
         H[1:-1] = H[1:-1] + mu_x*Drt*(gamma*(Hb[2:] - Hb[1:-1])-dx) - mu_x*Dlt*(gamma*(Hb[1:-1]-Hb[:-2])-dx)+ dt*q_p[1:-1]
-        if np.max(H) > 0.5: print(np.max(H))
+#        if np.max(H) > 0.5: print(np.max(H))
         H[H<1e-06] = 0
         #maxD = [max(Dlt), max(Drt)]
         #maxD = max(maxD)
